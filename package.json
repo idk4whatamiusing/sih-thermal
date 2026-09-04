@@ -1,0 +1,18 @@
+{
+  "name": "sih",
+  "private": true,
+  "workspaces": [
+    "ui",
+    "packages/*"
+  ],
+  "scripts": {
+    "sync:env": "node scripts/sync-env.mjs",
+    "dev:ui": "bun --cwd ui dev",
+    "dev:db": "cargo run --manifest-path db/Cargo.toml",
+    "dev:api": "go run ./api",
+    "dev:realtime": "cd realtime && gleam run",
+    "dev:gateway": "bun run sync:env && bun --cwd gateway run dev",
+    "deploy:worker": "bun run sync:env && bun --cwd gateway run deploy",
+    "build:ui": "bun --cwd ui build"
+  }
+}

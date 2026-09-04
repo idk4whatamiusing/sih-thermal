@@ -3,7 +3,7 @@
 // PS162 Dashboard: FIRMS thermal map + auth + live events
 // Stripped chat/RAG per team decision — GIS overlay is primary
 import { useEffect, useRef, useState } from "react";
-import { createClient, ME, type User } from "../../lib/gqlClient";
+import { createClient, ME, type User } from "../../../lib/gqlClient";
 
 const api = createClient(process.env.NEXT_PUBLIC_API_URL ?? "");
 
@@ -18,14 +18,13 @@ function ThermalMap() {
     (async () => {
       // dynamic import avoids SSR
       const maplibre = await import("maplibre-gl");
-      await import("maplibre-gl/dist/maplibre-gl.css");
+      // css loaded via globals.css import maplibre style if needed
       if (cancelled || !ref.current) return;
       const map = new maplibre.Map({
         container: ref.current,
         style: "https://demotiles.maplibre.org/style.json",
-        center: [78.96, 20.59], // India center
+        center: [78.96, 20.59] as any,
         zoom: 4,
-        attributionControl: true,
       });
       map.addControl(new maplibre.NavigationControl(), "top-right");
       // demo: Jamnagar refinery persistent source
@@ -74,13 +73,11 @@ function ThermalMap() {
         });
         setLoaded(true);
       });
-      // @ts-expect-error map ref
-      mapRef.current = map;
+      (mapRef as any).current = map;
     })();
     return () => {
       cancelled = true;
-      // @ts-expect-error cleanup
-      mapRef.current?.remove?.();
+      (mapRef as any).current?.remove?.();
     };
   }, []);
 

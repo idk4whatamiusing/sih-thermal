@@ -11,7 +11,7 @@ terraform {
 }
 
 variable "region" {
-  default = "us-east-1"
+  default = "ap-south-2"
 }
 
 variable "instance_type" {

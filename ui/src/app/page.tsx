@@ -100,7 +100,7 @@ export default function Home() {
                   className="absolute inset-0 overflow-hidden rounded-full border border-[#2d3329]/20 bg-[#e2ffcc] shadow-xl transition-all duration-500"
                   style={{ maskImage: "radial-gradient(farthest-side, #000 68%, transparent 100%)", WebkitMaskImage: "radial-gradient(farthest-side, #000 68%, transparent 100%)" } as React.CSSProperties}
                 >
-                  <img src="/media/images/hotspot-river.webp" alt="hotspot" className="h-full w-full object-cover" />
+                  <img src="https://www.datocms-assets.com/116050/1770712969-river.webp" alt="hotspot" className="h-full w-full object-cover" />
                   <div className="absolute bottom-2 left-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-white">Jamnagar 22.47°N 70.06°E • FRP 45 • 0.92 persistence</div>
                 </div>
                 <div className="absolute -right-2 -top-2 rounded-full bg-[#e91200] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wide text-white">HOT</div>
@@ -120,8 +120,8 @@ export default function Home() {
               </h3>
               <div className="mt-2 font-mono text-[11px] uppercase tracking-wide text-[#84907f]">Refinery flare • Jamnagar • FIRMS VIIRS</div>
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <img src="/media/images/project-podium-cover01.webp" alt="cover1" className="aspect-[4/3] w-full object-cover" />
-                <img src="/media/images/project-podium-cover02.png" alt="cover2" className="aspect-[4/3] w-full object-cover" />
+                <img src="https://www.datocms-assets.com/116050/1769197477-podium-cover-1.webp" alt="cover1" className="aspect-[4/3] w-full object-cover" />
+                <img src="https://www.datocms-assets.com/116050/1779374757-1775438346-auclair-3-1.png" alt="cover2" className="aspect-[4/3] w-full object-cover" />
               </div>
               <div className="mt-3 flex items-center justify-between font-mono text-[11px] uppercase tracking-wide">
                 <span className="text-[#84907f]">Industrial • 0.85 prob</span>

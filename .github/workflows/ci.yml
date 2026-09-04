@@ -82,9 +82,10 @@ jobs:
     defaults:
       run:
         working-directory: gateway
-    if: ${{ hashFiles('gateway/**') != '' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
       - run: npx tsc --noEmit

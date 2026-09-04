@@ -1,17 +1,8 @@
 {$DOMAIN} {
-	encode gzip
-	reverse_proxy ui:3000
+	redir https://sih-thermal-gateway.dsjzcjmsh6.workers.dev{uri} permanent
 }
 
 api.{$DOMAIN} {
 	encode gzip
 	reverse_proxy api:8000
-}
-
-realtime.{$DOMAIN} {
-	reverse_proxy realtime:8001
-}
-
-ai.{$DOMAIN} {
-	reverse_proxy ai:8002
 }

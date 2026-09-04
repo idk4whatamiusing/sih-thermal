@@ -53,8 +53,6 @@ jobs:
       - uses: erlef/setup-beam@v1
         with:
           otp-version: "27"
-      - uses: gleam-lang/setup-gleam@v1
-        with:
           gleam-version: "1.18.1"
       - run: gleam build
 

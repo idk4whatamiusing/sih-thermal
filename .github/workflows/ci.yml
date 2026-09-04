@@ -53,9 +53,9 @@ jobs:
       - uses: erlef/setup-beam@v1
         with:
           otp-version: "27"
-      - uses: gleamlang/setup-gleam@v1
+      - uses: gleam-lang/setup-gleam@v1
         with:
-          version: "1.18.1"
+          gleam-version: "1.18.1"
       - run: gleam build
 
   ai:

@@ -10,3 +10,8 @@ __pycache__/
 .gleam/
 build/
 erl_crash.dump
+
+# infra
+infra/.terraform/
+infra/terraform.tfstate
+infra/terraform.tfstate.backup

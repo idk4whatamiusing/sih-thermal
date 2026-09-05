@@ -1,9 +1,11 @@
 import {
+  Activity,
   Banknote,
   Calendar,
   ChartBar,
   CheckSquare,
   Fingerprint,
+  Flame,
   FolderOpen,
   Forklift,
   Gauge,
@@ -15,6 +17,7 @@ import {
   Lock,
   type LucideIcon,
   Mail,
+  Map,
   MessageSquare,
   ReceiptText,
   Server,
@@ -63,6 +66,31 @@ export interface NavGroup {
 }
 
 export const sidebarItems: NavGroup[] = [
+  {
+    id: 0,
+    label: "PS162",
+    items: [
+      {
+        id: "thermal",
+        title: "Thermal Map",
+        url: "/dashboard/default",
+        icon: Flame,
+        badge: "new",
+      },
+      {
+        id: "incidents",
+        title: "Incidents",
+        url: "/dashboard/incidents",
+        icon: Map,
+      },
+      {
+        id: "predict",
+        title: "AI Predict",
+        url: "/dashboard/predict",
+        icon: Activity,
+      },
+    ],
+  },
   {
     id: 1,
     label: "Dashboards",

@@ -1,10 +1,23 @@
 import type { NextConfig } from "next";
 
-// Both flavors: BUILD_TARGET=export builds the static export the Cloudflare
-// gateway serves; the default build is standalone SSR for AWS/dev.
-const nextConfig: NextConfig =
-  process.env.BUILD_TARGET === "export"
-    ? { output: "export", images: { unoptimized: true } }
-    : { output: "standalone" };
+const nextConfig: NextConfig = {
+  reactCompiler: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard",
+        destination: "/dashboard/default",
+        permanent: false,
+      },
+    ];
+  },
+};
 
-export default nextConfig;
+const buildTarget = process.env.BUILD_TARGET === "export"
+  ? { output: "export" as const, images: { unoptimized: true } }
+  : { output: "standalone" as const };
+
+export default { ...nextConfig, ...buildTarget } as NextConfig;

@@ -59,21 +59,21 @@ export default function Home() {
 
           {/* Center - Terrain + Headline */}
           <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden border-x border-[#2d3329]/10 bg-[#dde2e4]">
-            {/* Topographic SVG as faint bg + divider */}
+            {/* Topographic SVG as faint bg + divider - increased contrast */}
             <img
               src="/media/terrain/topology.svg"
               alt="terrain"
-              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.18] mix-blend-multiply"
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.26] mix-blend-multiply"
             />
             <img
               src="/media/terrain/topology.svg"
               alt="terrain overlay"
-              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.35] mix-blend-multiply"
-              style={{ maskImage: "radial-gradient(ellipse at center, black 40%, transparent 75%)" } as React.CSSProperties}
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.48] mix-blend-multiply"
+              style={{ maskImage: "radial-gradient(ellipse at center, black 45%, transparent 75%)" } as React.CSSProperties}
             />
 
-            {/* Headline split like San Rita */}
-            <div className="relative z-10 w-full px-6 py-16 text-center">
+            {/* Headline split like San Rita - z-30 above hotspot */}
+            <div className="relative z-30 w-full px-6 py-16 text-center">
               <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#84907f]">NTRO • SIH26162 • FIRMS VIIRS 375m • OSM</div>
               <h1
                 className="mt-4 font-black uppercase leading-[0.85] tracking-[-0.04em] text-[#2d3329]"
@@ -93,9 +93,9 @@ export default function Home() {
               <div className="mt-6 font-mono text-[10px] uppercase tracking-wide text-[#84907f]">Scroll to enter our world ↓</div>
             </div>
 
-            {/* Hotspot like San Rita R3F */}
-            <div className="pointer-events-none absolute left-[62%] top-[38%] z-20 hidden md:block">
-              <div className="relative h-[280px] w-[280px] -translate-x-1/2 -translate-y-1/2">
+            {/* Hotspot like San Rita R3F - repositioned lower to avoid headline overlap, z-0 behind text */}
+            <div className="pointer-events-none absolute left-[50%] top-[72%] z-0 hidden md:block">
+              <div className="relative h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px] -translate-x-1/2 -translate-y-1/2">
                 <div
                   className="absolute inset-0 overflow-hidden rounded-full border border-[#2d3329]/20 bg-[#e2ffcc] shadow-xl transition-all duration-500"
                   style={{ maskImage: "radial-gradient(farthest-side, #000 68%, transparent 100%)", WebkitMaskImage: "radial-gradient(farthest-side, #000 68%, transparent 100%)" } as React.CSSProperties}

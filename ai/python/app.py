@@ -22,6 +22,8 @@ import numpy as np
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+import landcover
+
 app = FastAPI(title="ai-rag-ps162", version="0.3.0")
 
 # --- keep legacy RAG models for stub compat ---
@@ -98,6 +100,15 @@ async def health():
 async def firms_predict(req: FirmsPredictRequest):
     reasons = []
     score = 0.0  # industrial_prob 0..1
+
+    # landcover enrichment: if the caller didn't supply it, sample it
+    # ourselves from ESA WorldCover (remote COG partial read, no full
+    # tile download). Best-effort - leave it unset on any failure.
+    if req.landcover is None:
+        try:
+            req.landcover = landcover.sample_landcover(req.lat, req.lon)
+        except Exception:
+            pass
 
     # persistence is strongest signal
     pers = req.persistence if req.persistence is not None else 0.0

@@ -622,11 +622,13 @@ type ClassifyFirmsPointRequest struct {
 	BrightTi5  float64                `protobuf:"fixed64,5,opt,name=bright_ti5,json=brightTi5,proto3" json:"bright_ti5,omitempty"`
 	Confidence string                 `protobuf:"bytes,6,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	Satellite  string                 `protobuf:"bytes,7,opt,name=satellite,proto3" json:"satellite,omitempty"`
-	// enrichment hints, optional (from PostGIS join) - 0/false if not yet known
-	DistIndustrialM  float64 `protobuf:"fixed64,8,opt,name=dist_industrial_m,json=distIndustrialM,proto3" json:"dist_industrial_m,omitempty"`
-	InsideIndustrial bool    `protobuf:"varint,9,opt,name=inside_industrial,json=insideIndustrial,proto3" json:"inside_industrial,omitempty"`
-	Persistence      float64 `protobuf:"fixed64,10,opt,name=persistence,proto3" json:"persistence,omitempty"` // 0..1
-	Landcover        int32   `protobuf:"varint,11,opt,name=landcover,proto3" json:"landcover,omitempty"`
+	// enrichment hints - unset means "not supplied by caller, let the ai
+	// service look it up via db.NearestIndustrialSite (PostGIS)"; explicit
+	// presence (proto3 optional) so a real 0m/false isn't confused with unset
+	DistIndustrialM  *float64 `protobuf:"fixed64,8,opt,name=dist_industrial_m,json=distIndustrialM,proto3,oneof" json:"dist_industrial_m,omitempty"`
+	InsideIndustrial *bool    `protobuf:"varint,9,opt,name=inside_industrial,json=insideIndustrial,proto3,oneof" json:"inside_industrial,omitempty"`
+	Persistence      float64  `protobuf:"fixed64,10,opt,name=persistence,proto3" json:"persistence,omitempty"`  // 0..1
+	Landcover        *int32   `protobuf:"varint,11,opt,name=landcover,proto3,oneof" json:"landcover,omitempty"` // no auto-fill yet - needs a landcover data source (deferred)
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -711,15 +713,15 @@ func (x *ClassifyFirmsPointRequest) GetSatellite() string {
 }
 
 func (x *ClassifyFirmsPointRequest) GetDistIndustrialM() float64 {
-	if x != nil {
-		return x.DistIndustrialM
+	if x != nil && x.DistIndustrialM != nil {
+		return *x.DistIndustrialM
 	}
 	return 0
 }
 
 func (x *ClassifyFirmsPointRequest) GetInsideIndustrial() bool {
-	if x != nil {
-		return x.InsideIndustrial
+	if x != nil && x.InsideIndustrial != nil {
+		return *x.InsideIndustrial
 	}
 	return false
 }
@@ -732,8 +734,8 @@ func (x *ClassifyFirmsPointRequest) GetPersistence() float64 {
 }
 
 func (x *ClassifyFirmsPointRequest) GetLandcover() int32 {
-	if x != nil {
-		return x.Landcover
+	if x != nil && x.Landcover != nil {
+		return *x.Landcover
 	}
 	return 0
 }
@@ -1236,7 +1238,7 @@ const file_ai_proto_rawDesc = "" +
 	"\x0ePredictRequest\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\"$\n" +
 	"\fPredictReply\x12\x14\n" +
-	"\x05label\x18\x01 \x01(\tR\x05label\"\xe6\x02\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\"\xaf\x03\n" +
 	"\x19ClassifyFirmsPointRequest\x12\x10\n" +
 	"\x03lat\x18\x01 \x01(\x01R\x03lat\x12\x10\n" +
 	"\x03lon\x18\x02 \x01(\x01R\x03lon\x12\x10\n" +
@@ -1248,12 +1250,16 @@ const file_ai_proto_rawDesc = "" +
 	"\n" +
 	"confidence\x18\x06 \x01(\tR\n" +
 	"confidence\x12\x1c\n" +
-	"\tsatellite\x18\a \x01(\tR\tsatellite\x12*\n" +
-	"\x11dist_industrial_m\x18\b \x01(\x01R\x0fdistIndustrialM\x12+\n" +
-	"\x11inside_industrial\x18\t \x01(\bR\x10insideIndustrial\x12 \n" +
+	"\tsatellite\x18\a \x01(\tR\tsatellite\x12/\n" +
+	"\x11dist_industrial_m\x18\b \x01(\x01H\x00R\x0fdistIndustrialM\x88\x01\x01\x120\n" +
+	"\x11inside_industrial\x18\t \x01(\bH\x01R\x10insideIndustrial\x88\x01\x01\x12 \n" +
 	"\vpersistence\x18\n" +
-	" \x01(\x01R\vpersistence\x12\x1c\n" +
-	"\tlandcover\x18\v \x01(\x05R\tlandcover\"\xa7\x01\n" +
+	" \x01(\x01R\vpersistence\x12!\n" +
+	"\tlandcover\x18\v \x01(\x05H\x02R\tlandcover\x88\x01\x01B\x14\n" +
+	"\x12_dist_industrial_mB\x14\n" +
+	"\x12_inside_industrialB\f\n" +
+	"\n" +
+	"_landcover\"\xa7\x01\n" +
 	"\x17ClassifyFirmsPointReply\x12'\n" +
 	"\x0fpredicted_class\x18\x01 \x01(\tR\x0epredictedClass\x12'\n" +
 	"\x0findustrial_prob\x18\x02 \x01(\x01R\x0eindustrialProb\x12 \n" +
@@ -1367,6 +1373,7 @@ func file_ai_proto_init() {
 	if File_ai_proto != nil {
 		return
 	}
+	file_ai_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

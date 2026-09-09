@@ -91,11 +91,13 @@ message ClassifyFirmsPointRequest {
   double bright_ti5 = 5;
   string confidence = 6;
   string satellite = 7;
-  // enrichment hints, optional (from PostGIS join) - 0/false if not yet known
-  double dist_industrial_m = 8;
-  bool inside_industrial = 9;
+  // enrichment hints - unset means "not supplied by caller, let the ai
+  // service look it up via db.NearestIndustrialSite (PostGIS)"; explicit
+  // presence (proto3 optional) so a real 0m/false isn't confused with unset
+  optional double dist_industrial_m = 8;
+  optional bool inside_industrial = 9;
   double persistence = 10;   // 0..1
-  int32 landcover = 11;
+  optional int32 landcover = 11; // no auto-fill yet - needs a landcover data source (deferred)
 }
 message ClassifyFirmsPointReply {
   string predicted_class = 1;

@@ -201,17 +201,14 @@ func (r *mutationResolver) ClassifyFirmsPoint(ctx context.Context, input app.Cla
 	if input.Satellite != nil {
 		req.Satellite = *input.Satellite
 	}
-	if input.DistIndustrialM != nil {
-		req.DistIndustrialM = *input.DistIndustrialM
-	}
-	if input.InsideIndustrial != nil {
-		req.InsideIndustrial = *input.InsideIndustrial
-	}
+	req.DistIndustrialM = input.DistIndustrialM
+	req.InsideIndustrial = input.InsideIndustrial
 	if input.Persistence != nil {
 		req.Persistence = *input.Persistence
 	}
 	if input.Landcover != nil {
-		req.Landcover = int32(*input.Landcover)
+		v := int32(*input.Landcover)
+		req.Landcover = &v
 	}
 	rep, err := r.Clients.Ai.ClassifyFirmsPoint(r.Clients.Ctx(ctx), req)
 	if err != nil {

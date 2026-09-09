@@ -13,9 +13,12 @@ import (
 	"github.com/idk4whatamiusing/meridian_stack/ai/internal/providers"
 	"github.com/idk4whatamiusing/meridian_stack/ai/internal/rag"
 	aipb "github.com/idk4whatamiusing/meridian_stack/api/pb/aipb"
+	dbpb "github.com/idk4whatamiusing/meridian_stack/api/pb/dbpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -26,8 +29,10 @@ const (
 
 type server struct {
 	aipb.UnimplementedAiServer
-	rag   *rag.Client
-	firms *firms.Client
+	rag      *rag.Client
+	firms    *firms.Client
+	db       dbpb.DbClient
+	dbSecret string
 }
 
 func envOr(k, def string) string {
@@ -239,22 +244,31 @@ func (s *server) ClassifyFirmsPoint(ctx context.Context, req *aipb.ClassifyFirms
 		v := req.GetSatellite()
 		preq.Satellite = &v
 	}
-	if req.GetDistIndustrialM() != 0 {
-		v := req.GetDistIndustrialM()
-		preq.DistIndustrialM = &v
-	}
-	if req.GetInsideIndustrial() {
-		v := true
-		preq.InsideIndustrial = &v
-	}
 	if req.GetPersistence() != 0 {
 		v := req.GetPersistence()
 		preq.Persistence = &v
 	}
-	if req.GetLandcover() != 0 {
-		v := req.GetLandcover()
-		preq.Landcover = &v
+	if req.Landcover != nil {
+		preq.Landcover = req.Landcover
 	}
+
+	// PostGIS enrichment: if the caller didn't supply dist/inside, look them
+	// up ourselves via db.NearestIndustrialSite rather than leaving them out
+	// of the prediction entirely.
+	distM, inside := req.DistIndustrialM, req.InsideIndustrial
+	if s.db != nil && (distM == nil || inside == nil) {
+		nctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
+		nrep, err := s.db.NearestIndustrialSite(nctx, &dbpb.NearestIndustrialSiteRequest{Lat: req.GetLat(), Lon: req.GetLon()})
+		if err != nil {
+			log.Printf("nearest industrial site lookup: %v", err)
+		} else if nrep.GetFound() {
+			d, in := nrep.GetDistM(), nrep.GetInside()
+			distM, inside = &d, &in
+		}
+	}
+	preq.DistIndustrialM = distM
+	preq.InsideIndustrial = inside
+
 	rep, err := s.firms.Predict(preq)
 	if err != nil {
 		return nil, err
@@ -370,7 +384,14 @@ func main() {
 	log.Printf("ai gRPC listening on %s (rag sidecar: %s)", grpcAddr, envOr("RAG_URL", "http://localhost:8003"))
 
 	ragURL := envOr("RAG_URL", "http://localhost:8003")
-	s := &server{rag: rag.New(ragURL), firms: firms.New(envOr("FIRMS_URL", ragURL))}
+	dbConn, err := grpc.NewClient(envOr("DB_GRPC_ADDR", "localhost:8010"), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	s := &server{
+		rag: rag.New(ragURL), firms: firms.New(envOr("FIRMS_URL", ragURL)),
+		db: dbpb.NewDbClient(dbConn), dbSecret: envOr("BACKEND_SECRET", "change-me"),
+	}
 	gs := grpc.NewServer()
 	aipb.RegisterAiServer(gs, s)
 	hs := health.NewServer()

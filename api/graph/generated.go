@@ -61,6 +61,7 @@ type ComplexityRoot struct {
 
 	FirmsClassification struct {
 		IndustrialProb func(childComplexity int) int
+		Landcover      func(childComplexity int) int
 		Persistence    func(childComplexity int) int
 		PredictedClass func(childComplexity int) int
 		Reasons        func(childComplexity int) int
@@ -169,7 +170,7 @@ type MutationResolver interface {
 	UpsertFirmsPoint(ctx context.Context, point api.FirmsPointInput) (string, error)
 	UpdateFirmsPointClassification(ctx context.Context, id string, predictedClass string, industrialProb float64, persistenceScore float64, distIndustrialM float64, insideIndustrial bool, landcover int, clusterID *string) (bool, error)
 	ClassifyFirmsPoint(ctx context.Context, input api.ClassifyFirmsPointInput) (*api.FirmsClassification, error)
-	IngestFirms(ctx context.Context, bbox api.BoundingBox, dateFrom string, dateTo string) (bool, error)
+	IngestFirms(ctx context.Context, bbox api.BoundingBox, dateFrom string, dateTo string) (int, error)
 }
 type QueryResolver interface {
 	Me(ctx context.Context) (*api.User, error)
@@ -285,6 +286,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.FirmsClassification.IndustrialProb(childComplexity), true
+	case "FirmsClassification.landcover":
+		if e.ComplexityRoot.FirmsClassification.Landcover == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsClassification.Landcover(childComplexity), true
 	case "FirmsClassification.persistence":
 		if e.ComplexityRoot.FirmsClassification.Persistence == nil {
 			break
@@ -943,6 +950,8 @@ func (ec *executionContext) childFields_FirmsClassification(ctx context.Context,
 		return ec.fieldContext_FirmsClassification_persistence(ctx, field)
 	case "reasons":
 		return ec.fieldContext_FirmsClassification_reasons(ctx, field)
+	case "landcover":
+		return ec.fieldContext_FirmsClassification_landcover(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type FirmsClassification", field.Name)
 }
@@ -2025,6 +2034,29 @@ func (ec *executionContext) fieldContext_FirmsClassification_reasons(_ context.C
 	return graphql.NewScalarFieldContext("FirmsClassification", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
+func (ec *executionContext) _FirmsClassification_landcover(ctx context.Context, field graphql.CollectedField, obj *api.FirmsClassification) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsClassification_landcover(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Landcover, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsClassification_landcover(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsClassification", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
 func (ec *executionContext) _FirmsPoint_id(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3028,8 +3060,8 @@ func (ec *executionContext) _Mutation_ingestFirms(ctx context.Context, field gra
 			return ec.Resolvers.Mutation().IngestFirms(ctx, fc.Args["bbox"].(api.BoundingBox), fc.Args["dateFrom"].(string), fc.Args["dateTo"].(string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
-			return ec.marshalNBoolean2bool(ctx, selections, v)
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
 		},
 		true,
 		true,
@@ -3042,7 +3074,7 @@ func (ec *executionContext) fieldContext_Mutation_ingestFirms(ctx context.Contex
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	defer func() {
@@ -5421,6 +5453,11 @@ func (ec *executionContext) _FirmsClassification(ctx context.Context, sel ast.Se
 		case "reasons":
 			out.Values[i] = ec._FirmsClassification_reasons(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "landcover":
+			out.Values[i] = ec._FirmsClassification_landcover(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
 		default:

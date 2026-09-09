@@ -99,6 +99,7 @@ type FirmsClassification {
   industrialProb: Float!
   persistence: Float!
   reasons: [String!]!
+  landcover: Int
 }
 
 input ClassifyFirmsPointInput {
@@ -150,7 +151,8 @@ type Mutation {
   # Does not persist - call updateFirmsPointClassification with the result to store it.
   classifyFirmsPoint(input: ClassifyFirmsPointInput!): FirmsClassification!
   # triggers a FIRMS CSV pull for a bbox/date range (ai gRPC -> Python /firms/ingest); currently a stub without FIRMS_MAP_KEY
-  ingestFirms(bbox: BoundingBox!, dateFrom: String!, dateTo: String!): Boolean!
+  # returns the number of points fetched/enriched/classified/persisted
+  ingestFirms(bbox: BoundingBox!, dateFrom: String!, dateTo: String!): Int!
 }
 
 type Subscription {

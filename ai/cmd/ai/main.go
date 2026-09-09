@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/idk4whatamiusing/meridian_stack/ai/internal/firms"
 	"github.com/idk4whatamiusing/meridian_stack/ai/internal/providers"
 	"github.com/idk4whatamiusing/meridian_stack/ai/internal/rag"
@@ -222,8 +223,26 @@ func (s *server) Predict(ctx context.Context, req *aipb.PredictRequest) (*aipb.P
 	}
 }
 
+// classifyEnrich fills in dist_industrial_m/inside_industrial via
+// db.NearestIndustrialSite when the caller didn't supply them, then calls
+// the Python classifier. Shared by ClassifyFirmsPoint and the IngestFirms
+// pipeline so both go through the same enrichment path.
+func (s *server) classifyEnrich(ctx context.Context, preq firms.PredictRequest) (firms.PredictReply, error) {
+	if preq.DistIndustrialM == nil || preq.InsideIndustrial == nil {
+		nctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
+		nrep, err := s.db.NearestIndustrialSite(nctx, &dbpb.NearestIndustrialSiteRequest{Lat: preq.Lat, Lon: preq.Lon})
+		if err != nil {
+			log.Printf("nearest industrial site lookup: %v", err)
+		} else if nrep.GetFound() {
+			d, in := nrep.GetDistM(), nrep.GetInside()
+			preq.DistIndustrialM, preq.InsideIndustrial = &d, &in
+		}
+	}
+	return s.firms.Predict(preq)
+}
+
 func (s *server) ClassifyFirmsPoint(ctx context.Context, req *aipb.ClassifyFirmsPointRequest) (*aipb.ClassifyFirmsPointReply, error) {
-	preq := firms.PredictRequest{Lat: req.GetLat(), Lon: req.GetLon()}
+	preq := firms.PredictRequest{Lat: req.GetLat(), Lon: req.GetLon(), DistIndustrialM: req.DistIndustrialM, InsideIndustrial: req.InsideIndustrial}
 	if req.GetFrp() != 0 {
 		v := req.GetFrp()
 		preq.Frp = &v
@@ -248,34 +267,15 @@ func (s *server) ClassifyFirmsPoint(ctx context.Context, req *aipb.ClassifyFirms
 		v := req.GetPersistence()
 		preq.Persistence = &v
 	}
-	if req.Landcover != nil {
-		preq.Landcover = req.Landcover
-	}
+	preq.Landcover = req.Landcover
 
-	// PostGIS enrichment: if the caller didn't supply dist/inside, look them
-	// up ourselves via db.NearestIndustrialSite rather than leaving them out
-	// of the prediction entirely.
-	distM, inside := req.DistIndustrialM, req.InsideIndustrial
-	if s.db != nil && (distM == nil || inside == nil) {
-		nctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
-		nrep, err := s.db.NearestIndustrialSite(nctx, &dbpb.NearestIndustrialSiteRequest{Lat: req.GetLat(), Lon: req.GetLon()})
-		if err != nil {
-			log.Printf("nearest industrial site lookup: %v", err)
-		} else if nrep.GetFound() {
-			d, in := nrep.GetDistM(), nrep.GetInside()
-			distM, inside = &d, &in
-		}
-	}
-	preq.DistIndustrialM = distM
-	preq.InsideIndustrial = inside
-
-	rep, err := s.firms.Predict(preq)
+	rep, err := s.classifyEnrich(ctx, preq)
 	if err != nil {
 		return nil, err
 	}
 	return &aipb.ClassifyFirmsPointReply{
 		PredictedClass: rep.PredictedClass, IndustrialProb: rep.IndustrialProb,
-		Persistence: rep.Persistence, Reasons: rep.Reasons,
+		Persistence: rep.Persistence, Reasons: rep.Reasons, Landcover: rep.Landcover,
 	}, nil
 }
 
@@ -310,15 +310,98 @@ func (s *server) ClusterFirmsPoints(ctx context.Context, req *aipb.ClusterFirmsP
 	return &aipb.ClusterFirmsPointsReply{Clusters: out, NClusters: int32(rep.NClusters)}, nil
 }
 
+// firmsPointNamespace is a fixed UUID used to derive stable, idempotent
+// FirmsPoint ids from (satellite, acq_date, acq_time, lat, lon) - so
+// re-ingesting the same bbox/date range upserts rather than duplicates.
+var firmsPointNamespace = uuid.MustParse("6f6a1e1a-2b0e-4a7a-9f2e-6b1c9d6e2a11")
+
+func firmsPointID(satellite, acqDate, acqTime string, lat, lon float64) string {
+	key := fmt.Sprintf("%s|%s|%s|%.5f|%.5f", satellite, acqDate, acqTime, lat, lon)
+	return uuid.NewSHA1(firmsPointNamespace, []byte(key)).String()
+}
+
+// normalizeFirmsTime converts FIRMS's raw acq_time ("HHMM", not zero-padded,
+// e.g. "102" = 01:02) into "HH:MM:SS" for the db's `time` column. Empty
+// input stays empty (db treats "" as NULL).
+func normalizeFirmsTime(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	for len(raw) < 4 {
+		raw = "0" + raw
+	}
+	if len(raw) != 4 {
+		return "" // unexpected shape - leave unset rather than send a bad value
+	}
+	return raw[:2] + ":" + raw[2:] + ":00"
+}
+
 func (s *server) IngestFirms(ctx context.Context, req *aipb.IngestFirmsRequest) (*aipb.IngestFirmsReply, error) {
 	rep, err := s.firms.Ingest(firms.IngestRequest{
-		Bbox:     [4]float64{req.GetMinLat(), req.GetMinLon(), req.GetMaxLat(), req.GetMaxLon()},
+		MinLat: req.GetMinLat(), MinLon: req.GetMinLon(), MaxLat: req.GetMaxLat(), MaxLon: req.GetMaxLon(),
 		DateFrom: req.GetDateFrom(), DateTo: req.GetDateTo(),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &aipb.IngestFirmsReply{Ok: rep.Ok, Error: rep.Error}, nil
+	if !rep.Ok {
+		return &aipb.IngestFirmsReply{Ok: false, Error: rep.Error}, nil
+	}
+
+	dctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
+	written := 0
+	for _, p := range rep.Points {
+		preq := firms.PredictRequest{
+			Lat: p.Lat, Lon: p.Lon, Frp: p.Frp, BrightTi4: p.BrightTi4, BrightTi5: p.BrightTi5,
+			Confidence: p.Confidence, Satellite: p.Satellite,
+		}
+		crep, err := s.classifyEnrich(ctx, preq)
+		if err != nil {
+			log.Printf("ingest: classify (%f,%f): %v", p.Lat, p.Lon, err)
+			continue
+		}
+
+		satellite := ""
+		if p.Satellite != nil {
+			satellite = *p.Satellite
+		}
+		confidence := ""
+		if p.Confidence != nil {
+			confidence = *p.Confidence
+		}
+		pb := &dbpb.FirmsPoint{
+			Id:       firmsPointID(satellite, p.AcqDate, p.AcqTime, p.Lat, p.Lon),
+			Latitude: p.Lat, Longitude: p.Lon, AcqDate: p.AcqDate, AcqTime: normalizeFirmsTime(p.AcqTime),
+			Confidence: confidence, Satellite: satellite,
+			PredictedClass: crep.PredictedClass, IndustrialProb: crep.IndustrialProb, PersistenceScore: crep.Persistence,
+		}
+		if p.BrightTi4 != nil {
+			pb.BrightTi4 = *p.BrightTi4
+		}
+		if p.BrightTi5 != nil {
+			pb.BrightTi5 = *p.BrightTi5
+		}
+		if p.Frp != nil {
+			pb.Frp = *p.Frp
+		}
+		if p.Scan != nil {
+			pb.Scan = *p.Scan
+		}
+		if p.Track != nil {
+			pb.Track = *p.Track
+		}
+		if crep.Landcover != nil {
+			pb.Landcover = *crep.Landcover
+		}
+
+		if _, err := s.db.UpsertFirmsPoint(dctx, &dbpb.UpsertFirmsPointRequest{Point: pb}); err != nil {
+			log.Printf("ingest: upsert (%f,%f): %v", p.Lat, p.Lon, err)
+			continue
+		}
+		written++
+	}
+	return &aipb.IngestFirmsReply{Ok: true, PointsIngested: int32(written)}, nil
 }
 
 // ---- small helpers ----

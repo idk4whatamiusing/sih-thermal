@@ -49,6 +49,7 @@ type FirmsClassification struct {
 	IndustrialProb float64  `json:"industrialProb"`
 	Persistence    float64  `json:"persistence"`
 	Reasons        []string `json:"reasons"`
+	Landcover      *int     `json:"landcover,omitempty"`
 }
 
 type FirmsPoint struct {

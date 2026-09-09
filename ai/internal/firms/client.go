@@ -51,6 +51,7 @@ type PredictReply struct {
 	IndustrialProb float64  `json:"industrial_prob"`
 	Persistence    float64  `json:"persistence"`
 	Reasons        []string `json:"reasons"`
+	Landcover      *int32   `json:"landcover,omitempty"` // value actually used (supplied or auto-sampled)
 }
 
 func (c *Client) Predict(req PredictRequest) (PredictReply, error) {
@@ -91,14 +92,32 @@ func (c *Client) Cluster(req ClusterRequest) (ClusterReply, error) {
 }
 
 type IngestRequest struct {
-	Bbox     [4]float64 `json:"bbox"`
-	DateFrom string     `json:"date_from"`
-	DateTo   string     `json:"date_to"`
+	MinLat   float64 `json:"min_lat"`
+	MinLon   float64 `json:"min_lon"`
+	MaxLat   float64 `json:"max_lat"`
+	MaxLon   float64 `json:"max_lon"`
+	DateFrom string  `json:"date_from"`
+	DateTo   string  `json:"date_to"`
+}
+
+type RawPoint struct {
+	Lat        float64  `json:"lat"`
+	Lon        float64  `json:"lon"`
+	AcqDate    string   `json:"acq_date"`
+	AcqTime    string   `json:"acq_time"`
+	BrightTi4  *float64 `json:"bright_ti4,omitempty"`
+	BrightTi5  *float64 `json:"bright_ti5,omitempty"`
+	Frp        *float64 `json:"frp,omitempty"`
+	Confidence *string  `json:"confidence,omitempty"`
+	Satellite  *string  `json:"satellite,omitempty"`
+	Scan       *float64 `json:"scan,omitempty"`
+	Track      *float64 `json:"track,omitempty"`
 }
 
 type IngestReply struct {
-	Ok    bool   `json:"ok"`
-	Error string `json:"error"`
+	Ok     bool       `json:"ok"`
+	Error  string     `json:"error"`
+	Points []RawPoint `json:"points"`
 }
 
 func (c *Client) Ingest(req IngestRequest) (IngestReply, error) {

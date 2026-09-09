@@ -628,7 +628,7 @@ type ClassifyFirmsPointRequest struct {
 	DistIndustrialM  *float64 `protobuf:"fixed64,8,opt,name=dist_industrial_m,json=distIndustrialM,proto3,oneof" json:"dist_industrial_m,omitempty"`
 	InsideIndustrial *bool    `protobuf:"varint,9,opt,name=inside_industrial,json=insideIndustrial,proto3,oneof" json:"inside_industrial,omitempty"`
 	Persistence      float64  `protobuf:"fixed64,10,opt,name=persistence,proto3" json:"persistence,omitempty"`  // 0..1
-	Landcover        *int32   `protobuf:"varint,11,opt,name=landcover,proto3,oneof" json:"landcover,omitempty"` // no auto-fill yet - needs a landcover data source (deferred)
+	Landcover        *int32   `protobuf:"varint,11,opt,name=landcover,proto3,oneof" json:"landcover,omitempty"` // unset -> Python sidecar auto-samples from ESA WorldCover
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -746,6 +746,7 @@ type ClassifyFirmsPointReply struct {
 	IndustrialProb float64                `protobuf:"fixed64,2,opt,name=industrial_prob,json=industrialProb,proto3" json:"industrial_prob,omitempty"`
 	Persistence    float64                `protobuf:"fixed64,3,opt,name=persistence,proto3" json:"persistence,omitempty"`
 	Reasons        []string               `protobuf:"bytes,4,rep,name=reasons,proto3" json:"reasons,omitempty"`
+	Landcover      *int32                 `protobuf:"varint,5,opt,name=landcover,proto3,oneof" json:"landcover,omitempty"` // value actually used (supplied or auto-sampled)
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -806,6 +807,13 @@ func (x *ClassifyFirmsPointReply) GetReasons() []string {
 		return x.Reasons
 	}
 	return nil
+}
+
+func (x *ClassifyFirmsPointReply) GetLandcover() int32 {
+	if x != nil && x.Landcover != nil {
+		return *x.Landcover
+	}
+	return 0
 }
 
 type FirmsClusterPointIn struct {
@@ -1141,11 +1149,12 @@ func (x *IngestFirmsRequest) GetDateTo() string {
 }
 
 type IngestFirmsReply struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
-	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Ok             bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	Error          string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	PointsIngested int32                  `protobuf:"varint,3,opt,name=points_ingested,json=pointsIngested,proto3" json:"points_ingested,omitempty"` // count of raw points fetched, enriched, classified and persisted
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *IngestFirmsReply) Reset() {
@@ -1190,6 +1199,13 @@ func (x *IngestFirmsReply) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *IngestFirmsReply) GetPointsIngested() int32 {
+	if x != nil {
+		return x.PointsIngested
+	}
+	return 0
 }
 
 var File_ai_proto protoreflect.FileDescriptor
@@ -1259,12 +1275,15 @@ const file_ai_proto_rawDesc = "" +
 	"\x12_dist_industrial_mB\x14\n" +
 	"\x12_inside_industrialB\f\n" +
 	"\n" +
-	"_landcover\"\xa7\x01\n" +
+	"_landcover\"\xd8\x01\n" +
 	"\x17ClassifyFirmsPointReply\x12'\n" +
 	"\x0fpredicted_class\x18\x01 \x01(\tR\x0epredictedClass\x12'\n" +
 	"\x0findustrial_prob\x18\x02 \x01(\x01R\x0eindustrialProb\x12 \n" +
 	"\vpersistence\x18\x03 \x01(\x01R\vpersistence\x12\x18\n" +
-	"\areasons\x18\x04 \x03(\tR\areasons\"K\n" +
+	"\areasons\x18\x04 \x03(\tR\areasons\x12!\n" +
+	"\tlandcover\x18\x05 \x01(\x05H\x00R\tlandcover\x88\x01\x01B\f\n" +
+	"\n" +
+	"_landcover\"K\n" +
 	"\x13FirmsClusterPointIn\x12\x10\n" +
 	"\x03lat\x18\x01 \x01(\x01R\x03lat\x12\x10\n" +
 	"\x03lon\x18\x02 \x01(\x01R\x03lon\x12\x10\n" +
@@ -1291,10 +1310,11 @@ const file_ai_proto_rawDesc = "" +
 	"\amax_lat\x18\x03 \x01(\x01R\x06maxLat\x12\x17\n" +
 	"\amax_lon\x18\x04 \x01(\x01R\x06maxLon\x12\x1b\n" +
 	"\tdate_from\x18\x05 \x01(\tR\bdateFrom\x12\x17\n" +
-	"\adate_to\x18\x06 \x01(\tR\x06dateTo\"8\n" +
+	"\adate_to\x18\x06 \x01(\tR\x06dateTo\"a\n" +
 	"\x10IngestFirmsReply\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error2\x99\x05\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\x12'\n" +
+	"\x0fpoints_ingested\x18\x03 \x01(\x05R\x0epointsIngested2\x99\x05\n" +
 	"\x02Ai\x12>\n" +
 	"\x04Chat\x12\x1b.meridian.ai.v1.ChatRequest\x1a\x19.meridian.ai.v1.ChatReply\x12F\n" +
 	"\n" +
@@ -1374,6 +1394,7 @@ func file_ai_proto_init() {
 		return
 	}
 	file_ai_proto_msgTypes[10].OneofWrappers = []any{}
+	file_ai_proto_msgTypes[11].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

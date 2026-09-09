@@ -214,28 +214,33 @@ func (r *mutationResolver) ClassifyFirmsPoint(ctx context.Context, input app.Cla
 	if err != nil {
 		return nil, err
 	}
+	var landcover *int
+	if rep.Landcover != nil {
+		v := int(*rep.Landcover)
+		landcover = &v
+	}
 	return &app.FirmsClassification{
 		PredictedClass: rep.PredictedClass, IndustrialProb: rep.IndustrialProb,
-		Persistence: rep.Persistence, Reasons: rep.Reasons,
+		Persistence: rep.Persistence, Reasons: rep.Reasons, Landcover: landcover,
 	}, nil
 }
 
-func (r *mutationResolver) IngestFirms(ctx context.Context, bbox app.BoundingBox, dateFrom string, dateTo string) (bool, error) {
+func (r *mutationResolver) IngestFirms(ctx context.Context, bbox app.BoundingBox, dateFrom string, dateTo string) (int, error) {
 	user := oauth.UserID(ctx)
 	if user == "" {
-		return false, errUnauthorized
+		return 0, errUnauthorized
 	}
 	rep, err := r.Clients.Ai.IngestFirms(r.Clients.Ctx(ctx), &aipb.IngestFirmsRequest{
 		MinLat: bbox.MinLat, MinLon: bbox.MinLon, MaxLat: bbox.MaxLat, MaxLon: bbox.MaxLon,
 		DateFrom: dateFrom, DateTo: dateTo,
 	})
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 	if !rep.Ok {
-		return false, errors.New(rep.Error)
+		return 0, errors.New(rep.Error)
 	}
-	return true, nil
+	return int(rep.PointsIngested), nil
 }
 
 // ---- queries ----

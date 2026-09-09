@@ -34,6 +34,8 @@ const (
 	Db_ListThermalClusters_FullMethodName            = "/meridian.db.v1.Db/ListThermalClusters"
 	Db_UpsertIndustrialSite_FullMethodName           = "/meridian.db.v1.Db/UpsertIndustrialSite"
 	Db_NearestIndustrialSite_FullMethodName          = "/meridian.db.v1.Db/NearestIndustrialSite"
+	Db_InsertLabelEvent_FullMethodName               = "/meridian.db.v1.Db/InsertLabelEvent"
+	Db_ListLabelEvents_FullMethodName                = "/meridian.db.v1.Db/ListLabelEvents"
 )
 
 // DbClient is the client API for Db service.
@@ -59,6 +61,9 @@ type DbClient interface {
 	ListThermalClusters(ctx context.Context, in *ListThermalClustersRequest, opts ...grpc.CallOption) (*ListThermalClustersReply, error)
 	UpsertIndustrialSite(ctx context.Context, in *UpsertIndustrialSiteRequest, opts ...grpc.CallOption) (*UpsertIndustrialSiteReply, error)
 	NearestIndustrialSite(ctx context.Context, in *NearestIndustrialSiteRequest, opts ...grpc.CallOption) (*NearestIndustrialSiteReply, error)
+	// PS162: independent weak-label events for training (see 0005_labels.sql)
+	InsertLabelEvent(ctx context.Context, in *InsertLabelEventRequest, opts ...grpc.CallOption) (*InsertLabelEventReply, error)
+	ListLabelEvents(ctx context.Context, in *ListLabelEventsRequest, opts ...grpc.CallOption) (*ListLabelEventsReply, error)
 }
 
 type dbClient struct {
@@ -219,6 +224,26 @@ func (c *dbClient) NearestIndustrialSite(ctx context.Context, in *NearestIndustr
 	return out, nil
 }
 
+func (c *dbClient) InsertLabelEvent(ctx context.Context, in *InsertLabelEventRequest, opts ...grpc.CallOption) (*InsertLabelEventReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InsertLabelEventReply)
+	err := c.cc.Invoke(ctx, Db_InsertLabelEvent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dbClient) ListLabelEvents(ctx context.Context, in *ListLabelEventsRequest, opts ...grpc.CallOption) (*ListLabelEventsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLabelEventsReply)
+	err := c.cc.Invoke(ctx, Db_ListLabelEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DbServer is the server API for Db service.
 // All implementations must embed UnimplementedDbServer
 // for forward compatibility.
@@ -242,6 +267,9 @@ type DbServer interface {
 	ListThermalClusters(context.Context, *ListThermalClustersRequest) (*ListThermalClustersReply, error)
 	UpsertIndustrialSite(context.Context, *UpsertIndustrialSiteRequest) (*UpsertIndustrialSiteReply, error)
 	NearestIndustrialSite(context.Context, *NearestIndustrialSiteRequest) (*NearestIndustrialSiteReply, error)
+	// PS162: independent weak-label events for training (see 0005_labels.sql)
+	InsertLabelEvent(context.Context, *InsertLabelEventRequest) (*InsertLabelEventReply, error)
+	ListLabelEvents(context.Context, *ListLabelEventsRequest) (*ListLabelEventsReply, error)
 	mustEmbedUnimplementedDbServer()
 }
 
@@ -296,6 +324,12 @@ func (UnimplementedDbServer) UpsertIndustrialSite(context.Context, *UpsertIndust
 }
 func (UnimplementedDbServer) NearestIndustrialSite(context.Context, *NearestIndustrialSiteRequest) (*NearestIndustrialSiteReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method NearestIndustrialSite not implemented")
+}
+func (UnimplementedDbServer) InsertLabelEvent(context.Context, *InsertLabelEventRequest) (*InsertLabelEventReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method InsertLabelEvent not implemented")
+}
+func (UnimplementedDbServer) ListLabelEvents(context.Context, *ListLabelEventsRequest) (*ListLabelEventsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLabelEvents not implemented")
 }
 func (UnimplementedDbServer) mustEmbedUnimplementedDbServer() {}
 func (UnimplementedDbServer) testEmbeddedByValue()            {}
@@ -588,6 +622,42 @@ func _Db_NearestIndustrialSite_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Db_InsertLabelEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InsertLabelEventRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DbServer).InsertLabelEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Db_InsertLabelEvent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DbServer).InsertLabelEvent(ctx, req.(*InsertLabelEventRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Db_ListLabelEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLabelEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DbServer).ListLabelEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Db_ListLabelEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DbServer).ListLabelEvents(ctx, req.(*ListLabelEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Db_ServiceDesc is the grpc.ServiceDesc for Db service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -654,6 +724,14 @@ var Db_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "NearestIndustrialSite",
 			Handler:    _Db_NearestIndustrialSite_Handler,
+		},
+		{
+			MethodName: "InsertLabelEvent",
+			Handler:    _Db_InsertLabelEvent_Handler,
+		},
+		{
+			MethodName: "ListLabelEvents",
+			Handler:    _Db_ListLabelEvents_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

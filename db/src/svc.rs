@@ -6,14 +6,16 @@ use crate::pb::{
     db_server::Db,
     AppendChatMessageReply, AppendChatMessageRequest, ChatMessage, ChatSession,
     CreateChatSessionReply, CreateChatSessionRequest, DeleteChatSessionReply,
-    DeleteChatSessionRequest, FirmsPoint, ListChatMessagesReply, ListChatMessagesRequest,
-    ListChatSessionsReply, ListChatSessionsRequest, ListFirmsPointsReply, ListFirmsPointsRequest,
-    ListThermalClustersReply, ListThermalClustersRequest, ListUsersReply, ListUsersRequest,
-    NearestIndustrialSiteReply, NearestIndustrialSiteRequest, RenameChatSessionReply,
-    RenameChatSessionRequest, ThermalCluster, UpdateFirmsPointClassificationReply,
-    UpdateFirmsPointClassificationRequest, UpsertFirmsPointReply, UpsertFirmsPointRequest,
-    UpsertIndustrialSiteReply, UpsertIndustrialSiteRequest, UpsertThermalClusterReply,
-    UpsertThermalClusterRequest, UpsertUserReply, UpsertUserRequest,
+    DeleteChatSessionRequest, FirmsPoint, InsertLabelEventReply, InsertLabelEventRequest,
+    LabelEvent, ListChatMessagesReply, ListChatMessagesRequest, ListChatSessionsReply,
+    ListChatSessionsRequest, ListFirmsPointsReply, ListFirmsPointsRequest, ListLabelEventsReply,
+    ListLabelEventsRequest, ListThermalClustersReply, ListThermalClustersRequest, ListUsersReply,
+    ListUsersRequest, NearestIndustrialSiteReply, NearestIndustrialSiteRequest,
+    RenameChatSessionReply, RenameChatSessionRequest, ThermalCluster,
+    UpdateFirmsPointClassificationReply, UpdateFirmsPointClassificationRequest,
+    UpsertFirmsPointReply, UpsertFirmsPointRequest, UpsertIndustrialSiteReply,
+    UpsertIndustrialSiteRequest, UpsertThermalClusterReply, UpsertThermalClusterRequest,
+    UpsertUserReply, UpsertUserRequest,
 };
 
 pub struct DbService {
@@ -534,6 +536,77 @@ impl Db for DbService {
             }
             None => NearestIndustrialSiteReply::default(),
         }))
+    }
+
+    async fn insert_label_event(
+        &self,
+        req: Request<InsertLabelEventRequest>,
+    ) -> Result<Response<InsertLabelEventReply>, Status> {
+        self.authorize(&req)?;
+        let r = req.into_inner();
+        let cluster_id = parse_uuid(&r.cluster_id)?;
+        let id = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO label_events (
+                id, cluster_id, source, label, confidence, matched_article_url, matched_article_title
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        )
+        .bind(id)
+        .bind(cluster_id)
+        .bind(&r.source)
+        .bind(&r.label)
+        .bind(r.confidence)
+        .bind(&r.matched_article_url)
+        .bind(&r.matched_article_title)
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(Response::new(InsertLabelEventReply { id: id.to_string() }))
+    }
+
+    async fn list_label_events(
+        &self,
+        req: Request<ListLabelEventsRequest>,
+    ) -> Result<Response<ListLabelEventsReply>, Status> {
+        self.authorize(&req)?;
+        let r = req.into_inner();
+        let limit = if r.limit <= 0 { 500 } else { r.limit.min(5000) };
+        let rows = if r.cluster_id.is_empty() {
+            sqlx::query(
+                "SELECT id, cluster_id, source, label, confidence,
+                        matched_article_url, matched_article_title, created_at::text AS created_at
+                 FROM label_events ORDER BY created_at DESC LIMIT $1",
+            )
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            let cluster_id = parse_uuid(&r.cluster_id)?;
+            sqlx::query(
+                "SELECT id, cluster_id, source, label, confidence,
+                        matched_article_url, matched_article_title, created_at::text AS created_at
+                 FROM label_events WHERE cluster_id = $1 ORDER BY created_at DESC LIMIT $2",
+            )
+            .bind(cluster_id)
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await
+        }
+        .map_err(db_err)?;
+        let events = rows
+            .into_iter()
+            .map(|row| LabelEvent {
+                id: row.get::<Uuid, _>("id").to_string(),
+                cluster_id: row.get::<Uuid, _>("cluster_id").to_string(),
+                source: row.get("source"),
+                label: row.get("label"),
+                confidence: row.get("confidence"),
+                matched_article_url: row.get("matched_article_url"),
+                matched_article_title: row.get("matched_article_title"),
+                created_at: row.get("created_at"),
+            })
+            .collect();
+        Ok(Response::new(ListLabelEventsReply { events }))
     }
 }
 

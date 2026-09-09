@@ -25,6 +25,10 @@ service Db {
   rpc ListThermalClusters(ListThermalClustersRequest) returns (ListThermalClustersReply);
   rpc UpsertIndustrialSite(UpsertIndustrialSiteRequest) returns (UpsertIndustrialSiteReply);
   rpc NearestIndustrialSite(NearestIndustrialSiteRequest) returns (NearestIndustrialSiteReply);
+
+  // PS162: independent weak-label events for training (see 0005_labels.sql)
+  rpc InsertLabelEvent(InsertLabelEventRequest) returns (InsertLabelEventReply);
+  rpc ListLabelEvents(ListLabelEventsRequest) returns (ListLabelEventsReply);
 }
 
 message UpsertUserRequest {
@@ -223,4 +227,34 @@ message NearestIndustrialSiteReply {
   double dist_m = 3;
   bool inside = 4;              // v1: dist_m < 50, no polygon containment test yet
   string industrial_type = 5;
+}
+
+message InsertLabelEventRequest {
+  string cluster_id = 1;
+  string source = 2;             // "gdelt" | "ai_worker"
+  string label = 3;
+  double confidence = 4;
+  string matched_article_url = 5;
+  string matched_article_title = 6;
+}
+message InsertLabelEventReply {
+  string id = 1;
+}
+
+message LabelEvent {
+  string id = 1;
+  string cluster_id = 2;
+  string source = 3;
+  string label = 4;
+  double confidence = 5;
+  string matched_article_url = 6;
+  string matched_article_title = 7;
+  string created_at = 8;
+}
+message ListLabelEventsRequest {
+  string cluster_id = 1;         // "" = all clusters
+  int32 limit = 2;                // 0 = server default (500), clamped to 5000
+}
+message ListLabelEventsReply {
+  repeated LabelEvent events = 1;
 }

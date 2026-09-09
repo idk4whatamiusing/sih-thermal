@@ -2153,6 +2153,330 @@ func (x *NearestIndustrialSiteReply) GetIndustrialType() string {
 	return ""
 }
 
+type InsertLabelEventRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ClusterId           string                 `protobuf:"bytes,1,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
+	Source              string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"` // "gdelt" | "ai_worker"
+	Label               string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	Confidence          float64                `protobuf:"fixed64,4,opt,name=confidence,proto3" json:"confidence,omitempty"`
+	MatchedArticleUrl   string                 `protobuf:"bytes,5,opt,name=matched_article_url,json=matchedArticleUrl,proto3" json:"matched_article_url,omitempty"`
+	MatchedArticleTitle string                 `protobuf:"bytes,6,opt,name=matched_article_title,json=matchedArticleTitle,proto3" json:"matched_article_title,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *InsertLabelEventRequest) Reset() {
+	*x = InsertLabelEventRequest{}
+	mi := &file_db_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InsertLabelEventRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InsertLabelEventRequest) ProtoMessage() {}
+
+func (x *InsertLabelEventRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_db_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InsertLabelEventRequest.ProtoReflect.Descriptor instead.
+func (*InsertLabelEventRequest) Descriptor() ([]byte, []int) {
+	return file_db_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *InsertLabelEventRequest) GetClusterId() string {
+	if x != nil {
+		return x.ClusterId
+	}
+	return ""
+}
+
+func (x *InsertLabelEventRequest) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *InsertLabelEventRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *InsertLabelEventRequest) GetConfidence() float64 {
+	if x != nil {
+		return x.Confidence
+	}
+	return 0
+}
+
+func (x *InsertLabelEventRequest) GetMatchedArticleUrl() string {
+	if x != nil {
+		return x.MatchedArticleUrl
+	}
+	return ""
+}
+
+func (x *InsertLabelEventRequest) GetMatchedArticleTitle() string {
+	if x != nil {
+		return x.MatchedArticleTitle
+	}
+	return ""
+}
+
+type InsertLabelEventReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InsertLabelEventReply) Reset() {
+	*x = InsertLabelEventReply{}
+	mi := &file_db_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InsertLabelEventReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InsertLabelEventReply) ProtoMessage() {}
+
+func (x *InsertLabelEventReply) ProtoReflect() protoreflect.Message {
+	mi := &file_db_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InsertLabelEventReply.ProtoReflect.Descriptor instead.
+func (*InsertLabelEventReply) Descriptor() ([]byte, []int) {
+	return file_db_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *InsertLabelEventReply) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type LabelEvent struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ClusterId           string                 `protobuf:"bytes,2,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
+	Source              string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	Label               string                 `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	Confidence          float64                `protobuf:"fixed64,5,opt,name=confidence,proto3" json:"confidence,omitempty"`
+	MatchedArticleUrl   string                 `protobuf:"bytes,6,opt,name=matched_article_url,json=matchedArticleUrl,proto3" json:"matched_article_url,omitempty"`
+	MatchedArticleTitle string                 `protobuf:"bytes,7,opt,name=matched_article_title,json=matchedArticleTitle,proto3" json:"matched_article_title,omitempty"`
+	CreatedAt           string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *LabelEvent) Reset() {
+	*x = LabelEvent{}
+	mi := &file_db_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LabelEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LabelEvent) ProtoMessage() {}
+
+func (x *LabelEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_db_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LabelEvent.ProtoReflect.Descriptor instead.
+func (*LabelEvent) Descriptor() ([]byte, []int) {
+	return file_db_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *LabelEvent) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LabelEvent) GetClusterId() string {
+	if x != nil {
+		return x.ClusterId
+	}
+	return ""
+}
+
+func (x *LabelEvent) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *LabelEvent) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *LabelEvent) GetConfidence() float64 {
+	if x != nil {
+		return x.Confidence
+	}
+	return 0
+}
+
+func (x *LabelEvent) GetMatchedArticleUrl() string {
+	if x != nil {
+		return x.MatchedArticleUrl
+	}
+	return ""
+}
+
+func (x *LabelEvent) GetMatchedArticleTitle() string {
+	if x != nil {
+		return x.MatchedArticleTitle
+	}
+	return ""
+}
+
+func (x *LabelEvent) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+type ListLabelEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ClusterId     string                 `protobuf:"bytes,1,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"` // "" = all clusters
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`                         // 0 = server default (500), clamped to 5000
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLabelEventsRequest) Reset() {
+	*x = ListLabelEventsRequest{}
+	mi := &file_db_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLabelEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLabelEventsRequest) ProtoMessage() {}
+
+func (x *ListLabelEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_db_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLabelEventsRequest.ProtoReflect.Descriptor instead.
+func (*ListLabelEventsRequest) Descriptor() ([]byte, []int) {
+	return file_db_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *ListLabelEventsRequest) GetClusterId() string {
+	if x != nil {
+		return x.ClusterId
+	}
+	return ""
+}
+
+func (x *ListLabelEventsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListLabelEventsReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Events        []*LabelEvent          `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLabelEventsReply) Reset() {
+	*x = ListLabelEventsReply{}
+	mi := &file_db_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLabelEventsReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLabelEventsReply) ProtoMessage() {}
+
+func (x *ListLabelEventsReply) ProtoReflect() protoreflect.Message {
+	mi := &file_db_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLabelEventsReply.ProtoReflect.Descriptor instead.
+func (*ListLabelEventsReply) Descriptor() ([]byte, []int) {
+	return file_db_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *ListLabelEventsReply) GetEvents() []*LabelEvent {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
 var File_db_proto protoreflect.FileDescriptor
 
 const file_db_proto_rawDesc = "" +
@@ -2316,7 +2640,39 @@ const file_db_proto_rawDesc = "" +
 	"\x06osm_id\x18\x02 \x01(\x03R\x05osmId\x12\x15\n" +
 	"\x06dist_m\x18\x03 \x01(\x01R\x05distM\x12\x16\n" +
 	"\x06inside\x18\x04 \x01(\bR\x06inside\x12'\n" +
-	"\x0findustrial_type\x18\x05 \x01(\tR\x0eindustrialType2\x9d\f\n" +
+	"\x0findustrial_type\x18\x05 \x01(\tR\x0eindustrialType\"\xea\x01\n" +
+	"\x17InsertLabelEventRequest\x12\x1d\n" +
+	"\n" +
+	"cluster_id\x18\x01 \x01(\tR\tclusterId\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x1e\n" +
+	"\n" +
+	"confidence\x18\x04 \x01(\x01R\n" +
+	"confidence\x12.\n" +
+	"\x13matched_article_url\x18\x05 \x01(\tR\x11matchedArticleUrl\x122\n" +
+	"\x15matched_article_title\x18\x06 \x01(\tR\x13matchedArticleTitle\"'\n" +
+	"\x15InsertLabelEventReply\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x8c\x02\n" +
+	"\n" +
+	"LabelEvent\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"cluster_id\x18\x02 \x01(\tR\tclusterId\x12\x16\n" +
+	"\x06source\x18\x03 \x01(\tR\x06source\x12\x14\n" +
+	"\x05label\x18\x04 \x01(\tR\x05label\x12\x1e\n" +
+	"\n" +
+	"confidence\x18\x05 \x01(\x01R\n" +
+	"confidence\x12.\n" +
+	"\x13matched_article_url\x18\x06 \x01(\tR\x11matchedArticleUrl\x122\n" +
+	"\x15matched_article_title\x18\a \x01(\tR\x13matchedArticleTitle\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\"M\n" +
+	"\x16ListLabelEventsRequest\x12\x1d\n" +
+	"\n" +
+	"cluster_id\x18\x01 \x01(\tR\tclusterId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"J\n" +
+	"\x14ListLabelEventsReply\x122\n" +
+	"\x06events\x18\x01 \x03(\v2\x1a.meridian.db.v1.LabelEventR\x06events2\xe2\r\n" +
 	"\x02Db\x12P\n" +
 	"\n" +
 	"UpsertUser\x12!.meridian.db.v1.UpsertUserRequest\x1a\x1f.meridian.db.v1.UpsertUserReply\x12M\n" +
@@ -2333,7 +2689,9 @@ const file_db_proto_rawDesc = "" +
 	"\x14UpsertThermalCluster\x12+.meridian.db.v1.UpsertThermalClusterRequest\x1a).meridian.db.v1.UpsertThermalClusterReply\x12k\n" +
 	"\x13ListThermalClusters\x12*.meridian.db.v1.ListThermalClustersRequest\x1a(.meridian.db.v1.ListThermalClustersReply\x12n\n" +
 	"\x14UpsertIndustrialSite\x12+.meridian.db.v1.UpsertIndustrialSiteRequest\x1a).meridian.db.v1.UpsertIndustrialSiteReply\x12q\n" +
-	"\x15NearestIndustrialSite\x12,.meridian.db.v1.NearestIndustrialSiteRequest\x1a*.meridian.db.v1.NearestIndustrialSiteReplyB8Z6github.com/idk4whatamiusing/meridian_stack/api/pb/dbpbb\x06proto3"
+	"\x15NearestIndustrialSite\x12,.meridian.db.v1.NearestIndustrialSiteRequest\x1a*.meridian.db.v1.NearestIndustrialSiteReply\x12b\n" +
+	"\x10InsertLabelEvent\x12'.meridian.db.v1.InsertLabelEventRequest\x1a%.meridian.db.v1.InsertLabelEventReply\x12_\n" +
+	"\x0fListLabelEvents\x12&.meridian.db.v1.ListLabelEventsRequest\x1a$.meridian.db.v1.ListLabelEventsReplyB8Z6github.com/idk4whatamiusing/meridian_stack/api/pb/dbpbb\x06proto3"
 
 var (
 	file_db_proto_rawDescOnce sync.Once
@@ -2347,7 +2705,7 @@ func file_db_proto_rawDescGZIP() []byte {
 	return file_db_proto_rawDescData
 }
 
-var file_db_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_db_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_db_proto_goTypes = []any{
 	(*UpsertUserRequest)(nil),                     // 0: meridian.db.v1.UpsertUserRequest
 	(*UpsertUserReply)(nil),                       // 1: meridian.db.v1.UpsertUserReply
@@ -2384,6 +2742,11 @@ var file_db_proto_goTypes = []any{
 	(*UpsertIndustrialSiteReply)(nil),             // 32: meridian.db.v1.UpsertIndustrialSiteReply
 	(*NearestIndustrialSiteRequest)(nil),          // 33: meridian.db.v1.NearestIndustrialSiteRequest
 	(*NearestIndustrialSiteReply)(nil),            // 34: meridian.db.v1.NearestIndustrialSiteReply
+	(*InsertLabelEventRequest)(nil),               // 35: meridian.db.v1.InsertLabelEventRequest
+	(*InsertLabelEventReply)(nil),                 // 36: meridian.db.v1.InsertLabelEventReply
+	(*LabelEvent)(nil),                            // 37: meridian.db.v1.LabelEvent
+	(*ListLabelEventsRequest)(nil),                // 38: meridian.db.v1.ListLabelEventsRequest
+	(*ListLabelEventsReply)(nil),                  // 39: meridian.db.v1.ListLabelEventsReply
 }
 var file_db_proto_depIdxs = []int32{
 	3,  // 0: meridian.db.v1.ListUsersReply.users:type_name -> meridian.db.v1.User
@@ -2393,41 +2756,46 @@ var file_db_proto_depIdxs = []int32{
 	19, // 4: meridian.db.v1.ListFirmsPointsReply.points:type_name -> meridian.db.v1.FirmsPoint
 	26, // 5: meridian.db.v1.UpsertThermalClusterRequest.cluster:type_name -> meridian.db.v1.ThermalCluster
 	26, // 6: meridian.db.v1.ListThermalClustersReply.clusters:type_name -> meridian.db.v1.ThermalCluster
-	0,  // 7: meridian.db.v1.Db.UpsertUser:input_type -> meridian.db.v1.UpsertUserRequest
-	2,  // 8: meridian.db.v1.Db.ListUsers:input_type -> meridian.db.v1.ListUsersRequest
-	5,  // 9: meridian.db.v1.Db.CreateChatSession:input_type -> meridian.db.v1.CreateChatSessionRequest
-	8,  // 10: meridian.db.v1.Db.ListChatSessions:input_type -> meridian.db.v1.ListChatSessionsRequest
-	10, // 11: meridian.db.v1.Db.RenameChatSession:input_type -> meridian.db.v1.RenameChatSessionRequest
-	12, // 12: meridian.db.v1.Db.DeleteChatSession:input_type -> meridian.db.v1.DeleteChatSessionRequest
-	15, // 13: meridian.db.v1.Db.AppendChatMessage:input_type -> meridian.db.v1.AppendChatMessageRequest
-	17, // 14: meridian.db.v1.Db.ListChatMessages:input_type -> meridian.db.v1.ListChatMessagesRequest
-	20, // 15: meridian.db.v1.Db.UpsertFirmsPoint:input_type -> meridian.db.v1.UpsertFirmsPointRequest
-	22, // 16: meridian.db.v1.Db.ListFirmsPoints:input_type -> meridian.db.v1.ListFirmsPointsRequest
-	24, // 17: meridian.db.v1.Db.UpdateFirmsPointClassification:input_type -> meridian.db.v1.UpdateFirmsPointClassificationRequest
-	27, // 18: meridian.db.v1.Db.UpsertThermalCluster:input_type -> meridian.db.v1.UpsertThermalClusterRequest
-	29, // 19: meridian.db.v1.Db.ListThermalClusters:input_type -> meridian.db.v1.ListThermalClustersRequest
-	31, // 20: meridian.db.v1.Db.UpsertIndustrialSite:input_type -> meridian.db.v1.UpsertIndustrialSiteRequest
-	33, // 21: meridian.db.v1.Db.NearestIndustrialSite:input_type -> meridian.db.v1.NearestIndustrialSiteRequest
-	1,  // 22: meridian.db.v1.Db.UpsertUser:output_type -> meridian.db.v1.UpsertUserReply
-	4,  // 23: meridian.db.v1.Db.ListUsers:output_type -> meridian.db.v1.ListUsersReply
-	6,  // 24: meridian.db.v1.Db.CreateChatSession:output_type -> meridian.db.v1.CreateChatSessionReply
-	9,  // 25: meridian.db.v1.Db.ListChatSessions:output_type -> meridian.db.v1.ListChatSessionsReply
-	11, // 26: meridian.db.v1.Db.RenameChatSession:output_type -> meridian.db.v1.RenameChatSessionReply
-	13, // 27: meridian.db.v1.Db.DeleteChatSession:output_type -> meridian.db.v1.DeleteChatSessionReply
-	16, // 28: meridian.db.v1.Db.AppendChatMessage:output_type -> meridian.db.v1.AppendChatMessageReply
-	18, // 29: meridian.db.v1.Db.ListChatMessages:output_type -> meridian.db.v1.ListChatMessagesReply
-	21, // 30: meridian.db.v1.Db.UpsertFirmsPoint:output_type -> meridian.db.v1.UpsertFirmsPointReply
-	23, // 31: meridian.db.v1.Db.ListFirmsPoints:output_type -> meridian.db.v1.ListFirmsPointsReply
-	25, // 32: meridian.db.v1.Db.UpdateFirmsPointClassification:output_type -> meridian.db.v1.UpdateFirmsPointClassificationReply
-	28, // 33: meridian.db.v1.Db.UpsertThermalCluster:output_type -> meridian.db.v1.UpsertThermalClusterReply
-	30, // 34: meridian.db.v1.Db.ListThermalClusters:output_type -> meridian.db.v1.ListThermalClustersReply
-	32, // 35: meridian.db.v1.Db.UpsertIndustrialSite:output_type -> meridian.db.v1.UpsertIndustrialSiteReply
-	34, // 36: meridian.db.v1.Db.NearestIndustrialSite:output_type -> meridian.db.v1.NearestIndustrialSiteReply
-	22, // [22:37] is the sub-list for method output_type
-	7,  // [7:22] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	37, // 7: meridian.db.v1.ListLabelEventsReply.events:type_name -> meridian.db.v1.LabelEvent
+	0,  // 8: meridian.db.v1.Db.UpsertUser:input_type -> meridian.db.v1.UpsertUserRequest
+	2,  // 9: meridian.db.v1.Db.ListUsers:input_type -> meridian.db.v1.ListUsersRequest
+	5,  // 10: meridian.db.v1.Db.CreateChatSession:input_type -> meridian.db.v1.CreateChatSessionRequest
+	8,  // 11: meridian.db.v1.Db.ListChatSessions:input_type -> meridian.db.v1.ListChatSessionsRequest
+	10, // 12: meridian.db.v1.Db.RenameChatSession:input_type -> meridian.db.v1.RenameChatSessionRequest
+	12, // 13: meridian.db.v1.Db.DeleteChatSession:input_type -> meridian.db.v1.DeleteChatSessionRequest
+	15, // 14: meridian.db.v1.Db.AppendChatMessage:input_type -> meridian.db.v1.AppendChatMessageRequest
+	17, // 15: meridian.db.v1.Db.ListChatMessages:input_type -> meridian.db.v1.ListChatMessagesRequest
+	20, // 16: meridian.db.v1.Db.UpsertFirmsPoint:input_type -> meridian.db.v1.UpsertFirmsPointRequest
+	22, // 17: meridian.db.v1.Db.ListFirmsPoints:input_type -> meridian.db.v1.ListFirmsPointsRequest
+	24, // 18: meridian.db.v1.Db.UpdateFirmsPointClassification:input_type -> meridian.db.v1.UpdateFirmsPointClassificationRequest
+	27, // 19: meridian.db.v1.Db.UpsertThermalCluster:input_type -> meridian.db.v1.UpsertThermalClusterRequest
+	29, // 20: meridian.db.v1.Db.ListThermalClusters:input_type -> meridian.db.v1.ListThermalClustersRequest
+	31, // 21: meridian.db.v1.Db.UpsertIndustrialSite:input_type -> meridian.db.v1.UpsertIndustrialSiteRequest
+	33, // 22: meridian.db.v1.Db.NearestIndustrialSite:input_type -> meridian.db.v1.NearestIndustrialSiteRequest
+	35, // 23: meridian.db.v1.Db.InsertLabelEvent:input_type -> meridian.db.v1.InsertLabelEventRequest
+	38, // 24: meridian.db.v1.Db.ListLabelEvents:input_type -> meridian.db.v1.ListLabelEventsRequest
+	1,  // 25: meridian.db.v1.Db.UpsertUser:output_type -> meridian.db.v1.UpsertUserReply
+	4,  // 26: meridian.db.v1.Db.ListUsers:output_type -> meridian.db.v1.ListUsersReply
+	6,  // 27: meridian.db.v1.Db.CreateChatSession:output_type -> meridian.db.v1.CreateChatSessionReply
+	9,  // 28: meridian.db.v1.Db.ListChatSessions:output_type -> meridian.db.v1.ListChatSessionsReply
+	11, // 29: meridian.db.v1.Db.RenameChatSession:output_type -> meridian.db.v1.RenameChatSessionReply
+	13, // 30: meridian.db.v1.Db.DeleteChatSession:output_type -> meridian.db.v1.DeleteChatSessionReply
+	16, // 31: meridian.db.v1.Db.AppendChatMessage:output_type -> meridian.db.v1.AppendChatMessageReply
+	18, // 32: meridian.db.v1.Db.ListChatMessages:output_type -> meridian.db.v1.ListChatMessagesReply
+	21, // 33: meridian.db.v1.Db.UpsertFirmsPoint:output_type -> meridian.db.v1.UpsertFirmsPointReply
+	23, // 34: meridian.db.v1.Db.ListFirmsPoints:output_type -> meridian.db.v1.ListFirmsPointsReply
+	25, // 35: meridian.db.v1.Db.UpdateFirmsPointClassification:output_type -> meridian.db.v1.UpdateFirmsPointClassificationReply
+	28, // 36: meridian.db.v1.Db.UpsertThermalCluster:output_type -> meridian.db.v1.UpsertThermalClusterReply
+	30, // 37: meridian.db.v1.Db.ListThermalClusters:output_type -> meridian.db.v1.ListThermalClustersReply
+	32, // 38: meridian.db.v1.Db.UpsertIndustrialSite:output_type -> meridian.db.v1.UpsertIndustrialSiteReply
+	34, // 39: meridian.db.v1.Db.NearestIndustrialSite:output_type -> meridian.db.v1.NearestIndustrialSiteReply
+	36, // 40: meridian.db.v1.Db.InsertLabelEvent:output_type -> meridian.db.v1.InsertLabelEventReply
+	39, // 41: meridian.db.v1.Db.ListLabelEvents:output_type -> meridian.db.v1.ListLabelEventsReply
+	25, // [25:42] is the sub-list for method output_type
+	8,  // [8:25] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_db_proto_init() }
@@ -2441,7 +2809,7 @@ func file_db_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_db_proto_rawDesc), len(file_db_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   35,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

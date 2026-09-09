@@ -25,6 +25,7 @@ import numpy as np
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+import gdelt
 import landcover
 
 app = FastAPI(title="ai-rag-ps162", version="0.3.0")
@@ -111,6 +112,19 @@ class IngestFirmsReply(BaseModel):
     ok: bool
     error: str = ""
     points: list[FirmsRawPoint] = []
+
+class GdeltLabelRequest(BaseModel):
+    lat: float
+    lon: float
+    date_from: str
+    date_to: str
+
+class GdeltLabelReply(BaseModel):
+    found: bool
+    label: str = ""
+    confidence: float = 0.0
+    matched_article_url: str = ""
+    matched_article_title: str = ""
 
 # --- helpers ---
 def haversine_m(lat1, lon1, lat2, lon2):
@@ -286,6 +300,13 @@ async def firms_ingest(req: IngestFirmsRequest):
         except (KeyError, ValueError):
             continue
     return IngestFirmsReply(ok=True, points=points)
+
+@app.post("/gdelt/label")
+async def gdelt_label(req: GdeltLabelRequest):
+    result = gdelt.label_from_gdelt(req.lat, req.lon, req.date_from, req.date_to)
+    if result is None:
+        return GdeltLabelReply(found=False)
+    return GdeltLabelReply(found=True, **result)
 
 # --- legacy stubs (keep 200 so Go rag client doesn't error during removal) ---
 @app.post("/retrieve")

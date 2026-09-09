@@ -16,6 +16,16 @@ infra/.terraform/
 infra/terraform.tfstate
 infra/terraform.tfstate.backup
 
+# ML training artifacts - dataset dumps and smoke-test scratch never belong
+# in git. ai/python/models/ is also ignored for now: there is no real
+# trained checkpoint yet (only a synthetic pipeline smoke test) and
+# committing one would misrepresent it as production-ready. Once real
+# training on real data produces a checkpoint worth serving, either
+# un-ignore this path or commit that specific file explicitly.
+ai/python/train/data/
+ai/python/train/scratch/
+ai/python/models/
+
 # San Rita direct clone media (internal) - keep fonts/terrain, ignore large DatoCMS images
 public/media/images/
 ui/public/media/images/

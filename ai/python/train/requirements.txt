@@ -1,0 +1,9 @@
+# Training-only dependencies - NOT installed in the serving sidecar
+# (ai/python/requirements.txt), which stays light and CPU-inference-only
+# via onnxruntime. Train off-box (locally/Colab/a throwaway larger
+# instance), never on the production t3.micro.
+torch --index-url https://download.pytorch.org/whl/cpu
+onnx
+onnxruntime
+numpy
+asyncpg

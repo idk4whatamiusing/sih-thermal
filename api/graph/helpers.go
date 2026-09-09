@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strconv"
 	"time"
 
 	app "github.com/idk4whatamiusing/meridian_stack/api"
@@ -40,6 +41,52 @@ func toAppMessages(msgs []store.Message) []*app.Message {
 
 func dbUsersKey(n int) string          { return store.Hash("db", "users", itoa(n)) }
 func dbSessionsKey(user string) string { return store.Hash("db", "sessions", user) }
+
+func dbFirmsPointsKey(bbox app.BoundingBox, from, to, class string, limit int) string {
+	return store.Hash("db", "firms_points", bboxKey(bbox), from, to, class, itoa(limit))
+}
+
+func dbThermalClustersKey(bbox app.BoundingBox) string {
+	return store.Hash("db", "thermal_clusters", bboxKey(bbox))
+}
+
+func bboxKey(b app.BoundingBox) string {
+	return ftoa(b.MinLat) + "," + ftoa(b.MinLon) + "," + ftoa(b.MaxLat) + "," + ftoa(b.MaxLon)
+}
+
+func ftoa(f float64) string { return strconv.FormatFloat(f, 'f', 4, 64) }
+
+func firmsPointFromPB(p *dbpb.FirmsPoint) *app.FirmsPoint {
+	var clusterID *string
+	if p.ClusterId != "" {
+		id := p.ClusterId
+		clusterID = &id
+	}
+	osmID := ""
+	if p.OsmId != 0 {
+		osmID = strconv.FormatInt(p.OsmId, 10)
+	}
+	return &app.FirmsPoint{
+		ID: p.Id, Latitude: p.Latitude, Longitude: p.Longitude, AcqDate: p.AcqDate, AcqTime: p.AcqTime,
+		BrightTi4: p.BrightTi4, BrightTi5: p.BrightTi5, Frp: p.Frp, Confidence: p.Confidence, Satellite: p.Satellite,
+		Landcover: int(p.Landcover), DistIndustrialM: p.DistIndustrialM, InsideIndustrial: p.InsideIndustrial,
+		OsmID: osmID, PersistenceScore: p.PersistenceScore, PredictedClass: p.PredictedClass,
+		IndustrialProb: p.IndustrialProb, ClusterID: clusterID,
+	}
+}
+
+func thermalClusterFromPB(c *dbpb.ThermalCluster) *app.ThermalCluster {
+	var osmID *string
+	if c.OsmId != 0 {
+		id := strconv.FormatInt(c.OsmId, 10)
+		osmID = &id
+	}
+	return &app.ThermalCluster{
+		ID: c.Id, CentroidLat: c.CentroidLat, CentroidLon: c.CentroidLon, Count: int(c.Count),
+		AvgFrp: c.AvgFrp, MaxFrp: c.MaxFrp, Persistence: c.Persistence, FirstSeen: c.FirstSeen,
+		LastSeen: c.LastSeen, PredictedClass: c.PredictedClass, OsmID: osmID,
+	}
+}
 
 func itoa(n int) string {
 	if n == 0 {

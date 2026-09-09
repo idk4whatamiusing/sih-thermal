@@ -14,7 +14,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	app "github.com/idk4whatamiusing/meridian_stack/api"
+	"github.com/idk4whatamiusing/meridian_stack/api"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -59,6 +59,27 @@ type ComplexityRoot struct {
 		UpdatedAt func(childComplexity int) int
 	}
 
+	FirmsPoint struct {
+		AcqDate          func(childComplexity int) int
+		AcqTime          func(childComplexity int) int
+		BrightTi4        func(childComplexity int) int
+		BrightTi5        func(childComplexity int) int
+		ClusterID        func(childComplexity int) int
+		Confidence       func(childComplexity int) int
+		DistIndustrialM  func(childComplexity int) int
+		Frp              func(childComplexity int) int
+		ID               func(childComplexity int) int
+		IndustrialProb   func(childComplexity int) int
+		InsideIndustrial func(childComplexity int) int
+		Landcover        func(childComplexity int) int
+		Latitude         func(childComplexity int) int
+		Longitude        func(childComplexity int) int
+		OsmID            func(childComplexity int) int
+		PersistenceScore func(childComplexity int) int
+		PredictedClass   func(childComplexity int) int
+		Satellite        func(childComplexity int) int
+	}
+
 	Message struct {
 		Content   func(childComplexity int) int
 		CreatedAt func(childComplexity int) int
@@ -66,23 +87,27 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		Broadcast         func(childComplexity int, message string) int
-		Chat              func(childComplexity int, sessionID string, message string, provider *string) int
-		CreateChatSession func(childComplexity int, title *string) int
-		DeleteSession     func(childComplexity int, id string) int
-		IngestSupport     func(childComplexity int, documents []string) int
-		Login             func(childComplexity int, email string) int
-		Logout            func(childComplexity int) int
-		RenameSession     func(childComplexity int, id string, title string) int
-		SupportQuery      func(childComplexity int, message string) int
+		Broadcast                      func(childComplexity int, message string) int
+		Chat                           func(childComplexity int, sessionID string, message string, provider *string) int
+		CreateChatSession              func(childComplexity int, title *string) int
+		DeleteSession                  func(childComplexity int, id string) int
+		IngestSupport                  func(childComplexity int, documents []string) int
+		Login                          func(childComplexity int, email string) int
+		Logout                         func(childComplexity int) int
+		RenameSession                  func(childComplexity int, id string, title string) int
+		SupportQuery                   func(childComplexity int, message string) int
+		UpdateFirmsPointClassification func(childComplexity int, id string, predictedClass string, industrialProb float64, persistenceScore float64, distIndustrialM float64, insideIndustrial bool, landcover int, clusterID *string) int
+		UpsertFirmsPoint               func(childComplexity int, point api.FirmsPointInput) int
 	}
 
 	Query struct {
-		ChatHistory  func(childComplexity int, sessionID string) int
-		ChatSessions func(childComplexity int) int
-		Health       func(childComplexity int) int
-		Me           func(childComplexity int) int
-		Users        func(childComplexity int, limit *int) int
+		ChatHistory     func(childComplexity int, sessionID string) int
+		ChatSessions    func(childComplexity int) int
+		FirmsPoints     func(childComplexity int, bbox api.BoundingBox, dateFrom *string, dateTo *string, predictedClass *string, limit *int) int
+		Health          func(childComplexity int) int
+		Me              func(childComplexity int) int
+		ThermalClusters func(childComplexity int, bbox api.BoundingBox) int
+		Users           func(childComplexity int, limit *int) int
 	}
 
 	Source struct {
@@ -98,6 +123,20 @@ type ComplexityRoot struct {
 		SupportStream func(childComplexity int, message string) int
 	}
 
+	ThermalCluster struct {
+		AvgFrp         func(childComplexity int) int
+		CentroidLat    func(childComplexity int) int
+		CentroidLon    func(childComplexity int) int
+		Count          func(childComplexity int) int
+		FirstSeen      func(childComplexity int) int
+		ID             func(childComplexity int) int
+		LastSeen       func(childComplexity int) int
+		MaxFrp         func(childComplexity int) int
+		OsmID          func(childComplexity int) int
+		Persistence    func(childComplexity int) int
+		PredictedClass func(childComplexity int) int
+	}
+
 	User struct {
 		Email func(childComplexity int) int
 		ID    func(childComplexity int) int
@@ -109,27 +148,31 @@ type ComplexityRoot struct {
 // region    ************************** generated!.gotpl **************************
 
 type MutationResolver interface {
-	Login(ctx context.Context, email string) (*app.User, error)
+	Login(ctx context.Context, email string) (*api.User, error)
 	Logout(ctx context.Context) (bool, error)
 	Broadcast(ctx context.Context, message string) (bool, error)
-	CreateChatSession(ctx context.Context, title *string) (*app.ChatSession, error)
+	CreateChatSession(ctx context.Context, title *string) (*api.ChatSession, error)
 	RenameSession(ctx context.Context, id string, title string) (bool, error)
 	DeleteSession(ctx context.Context, id string) (bool, error)
-	Chat(ctx context.Context, sessionID string, message string, provider *string) (*app.ChatReply, error)
-	SupportQuery(ctx context.Context, message string) (*app.ChatReply, error)
+	Chat(ctx context.Context, sessionID string, message string, provider *string) (*api.ChatReply, error)
+	SupportQuery(ctx context.Context, message string) (*api.ChatReply, error)
 	IngestSupport(ctx context.Context, documents []string) (int, error)
+	UpsertFirmsPoint(ctx context.Context, point api.FirmsPointInput) (string, error)
+	UpdateFirmsPointClassification(ctx context.Context, id string, predictedClass string, industrialProb float64, persistenceScore float64, distIndustrialM float64, insideIndustrial bool, landcover int, clusterID *string) (bool, error)
 }
 type QueryResolver interface {
-	Me(ctx context.Context) (*app.User, error)
-	Users(ctx context.Context, limit *int) ([]*app.User, error)
+	Me(ctx context.Context) (*api.User, error)
+	Users(ctx context.Context, limit *int) ([]*api.User, error)
 	Health(ctx context.Context) (string, error)
-	ChatSessions(ctx context.Context) ([]*app.ChatSession, error)
-	ChatHistory(ctx context.Context, sessionID string) ([]*app.Message, error)
+	ChatSessions(ctx context.Context) ([]*api.ChatSession, error)
+	ChatHistory(ctx context.Context, sessionID string) ([]*api.Message, error)
+	FirmsPoints(ctx context.Context, bbox api.BoundingBox, dateFrom *string, dateTo *string, predictedClass *string, limit *int) ([]*api.FirmsPoint, error)
+	ThermalClusters(ctx context.Context, bbox api.BoundingBox) ([]*api.ThermalCluster, error)
 }
 type SubscriptionResolver interface {
 	Events(ctx context.Context) (<-chan string, error)
-	ChatStream(ctx context.Context, sessionID string, message string, provider *string) (<-chan *app.ChatChunk, error)
-	SupportStream(ctx context.Context, message string) (<-chan *app.ChatChunk, error)
+	ChatStream(ctx context.Context, sessionID string, message string, provider *string) (<-chan *api.ChatChunk, error)
+	SupportStream(ctx context.Context, message string) (<-chan *api.ChatChunk, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -224,6 +267,115 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.ChatSession.UpdatedAt(childComplexity), true
+
+	case "FirmsPoint.acqDate":
+		if e.ComplexityRoot.FirmsPoint.AcqDate == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.AcqDate(childComplexity), true
+	case "FirmsPoint.acqTime":
+		if e.ComplexityRoot.FirmsPoint.AcqTime == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.AcqTime(childComplexity), true
+	case "FirmsPoint.brightTi4":
+		if e.ComplexityRoot.FirmsPoint.BrightTi4 == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.BrightTi4(childComplexity), true
+	case "FirmsPoint.brightTi5":
+		if e.ComplexityRoot.FirmsPoint.BrightTi5 == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.BrightTi5(childComplexity), true
+	case "FirmsPoint.clusterId":
+		if e.ComplexityRoot.FirmsPoint.ClusterID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.ClusterID(childComplexity), true
+	case "FirmsPoint.confidence":
+		if e.ComplexityRoot.FirmsPoint.Confidence == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.Confidence(childComplexity), true
+	case "FirmsPoint.distIndustrialM":
+		if e.ComplexityRoot.FirmsPoint.DistIndustrialM == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.DistIndustrialM(childComplexity), true
+	case "FirmsPoint.frp":
+		if e.ComplexityRoot.FirmsPoint.Frp == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.Frp(childComplexity), true
+	case "FirmsPoint.id":
+		if e.ComplexityRoot.FirmsPoint.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.ID(childComplexity), true
+	case "FirmsPoint.industrialProb":
+		if e.ComplexityRoot.FirmsPoint.IndustrialProb == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.IndustrialProb(childComplexity), true
+	case "FirmsPoint.insideIndustrial":
+		if e.ComplexityRoot.FirmsPoint.InsideIndustrial == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.InsideIndustrial(childComplexity), true
+	case "FirmsPoint.landcover":
+		if e.ComplexityRoot.FirmsPoint.Landcover == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.Landcover(childComplexity), true
+	case "FirmsPoint.latitude":
+		if e.ComplexityRoot.FirmsPoint.Latitude == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.Latitude(childComplexity), true
+	case "FirmsPoint.longitude":
+		if e.ComplexityRoot.FirmsPoint.Longitude == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.Longitude(childComplexity), true
+	case "FirmsPoint.osmId":
+		if e.ComplexityRoot.FirmsPoint.OsmID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.OsmID(childComplexity), true
+	case "FirmsPoint.persistenceScore":
+		if e.ComplexityRoot.FirmsPoint.PersistenceScore == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.PersistenceScore(childComplexity), true
+	case "FirmsPoint.predictedClass":
+		if e.ComplexityRoot.FirmsPoint.PredictedClass == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.PredictedClass(childComplexity), true
+	case "FirmsPoint.satellite":
+		if e.ComplexityRoot.FirmsPoint.Satellite == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsPoint.Satellite(childComplexity), true
 
 	case "Message.content":
 		if e.ComplexityRoot.Message.Content == nil {
@@ -338,6 +490,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.SupportQuery(childComplexity, args["message"].(string)), true
+	case "Mutation.updateFirmsPointClassification":
+		if e.ComplexityRoot.Mutation.UpdateFirmsPointClassification == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateFirmsPointClassification_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpdateFirmsPointClassification(childComplexity, args["id"].(string), args["predictedClass"].(string), args["industrialProb"].(float64), args["persistenceScore"].(float64), args["distIndustrialM"].(float64), args["insideIndustrial"].(bool), args["landcover"].(int), args["clusterId"].(*string)), true
+	case "Mutation.upsertFirmsPoint":
+		if e.ComplexityRoot.Mutation.UpsertFirmsPoint == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_upsertFirmsPoint_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpsertFirmsPoint(childComplexity, args["point"].(api.FirmsPointInput)), true
 
 	case "Query.chatHistory":
 		if e.ComplexityRoot.Query.ChatHistory == nil {
@@ -356,6 +530,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.ChatSessions(childComplexity), true
+	case "Query.firmsPoints":
+		if e.ComplexityRoot.Query.FirmsPoints == nil {
+			break
+		}
+
+		args, err := ec.field_Query_firmsPoints_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.FirmsPoints(childComplexity, args["bbox"].(api.BoundingBox), args["dateFrom"].(*string), args["dateTo"].(*string), args["predictedClass"].(*string), args["limit"].(*int)), true
 	case "Query.health":
 		if e.ComplexityRoot.Query.Health == nil {
 			break
@@ -369,6 +554,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Me(childComplexity), true
+	case "Query.thermalClusters":
+		if e.ComplexityRoot.Query.ThermalClusters == nil {
+			break
+		}
+
+		args, err := ec.field_Query_thermalClusters_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.ThermalClusters(childComplexity, args["bbox"].(api.BoundingBox)), true
 	case "Query.users":
 		if e.ComplexityRoot.Query.Users == nil {
 			break
@@ -435,6 +631,73 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Subscription.SupportStream(childComplexity, args["message"].(string)), true
 
+	case "ThermalCluster.avgFrp":
+		if e.ComplexityRoot.ThermalCluster.AvgFrp == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.AvgFrp(childComplexity), true
+	case "ThermalCluster.centroidLat":
+		if e.ComplexityRoot.ThermalCluster.CentroidLat == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.CentroidLat(childComplexity), true
+	case "ThermalCluster.centroidLon":
+		if e.ComplexityRoot.ThermalCluster.CentroidLon == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.CentroidLon(childComplexity), true
+	case "ThermalCluster.count":
+		if e.ComplexityRoot.ThermalCluster.Count == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.Count(childComplexity), true
+	case "ThermalCluster.firstSeen":
+		if e.ComplexityRoot.ThermalCluster.FirstSeen == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.FirstSeen(childComplexity), true
+	case "ThermalCluster.id":
+		if e.ComplexityRoot.ThermalCluster.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.ID(childComplexity), true
+	case "ThermalCluster.lastSeen":
+		if e.ComplexityRoot.ThermalCluster.LastSeen == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.LastSeen(childComplexity), true
+	case "ThermalCluster.maxFrp":
+		if e.ComplexityRoot.ThermalCluster.MaxFrp == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.MaxFrp(childComplexity), true
+	case "ThermalCluster.osmId":
+		if e.ComplexityRoot.ThermalCluster.OsmID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.OsmID(childComplexity), true
+	case "ThermalCluster.persistence":
+		if e.ComplexityRoot.ThermalCluster.Persistence == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.Persistence(childComplexity), true
+	case "ThermalCluster.predictedClass":
+		if e.ComplexityRoot.ThermalCluster.PredictedClass == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ThermalCluster.PredictedClass(childComplexity), true
+
 	case "User.email":
 		if e.ComplexityRoot.User.Email == nil {
 			break
@@ -455,7 +718,10 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputBoundingBox,
+		ec.unmarshalInputFirmsPointInput,
+	)
 	first := true
 
 	switch opCtx.Operation.Operation {
@@ -608,6 +874,48 @@ func (ec *executionContext) childFields_ChatSession(ctx context.Context, field g
 	return nil, fmt.Errorf("no field named %q was found under type ChatSession", field.Name)
 }
 
+func (ec *executionContext) childFields_FirmsPoint(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_FirmsPoint_id(ctx, field)
+	case "latitude":
+		return ec.fieldContext_FirmsPoint_latitude(ctx, field)
+	case "longitude":
+		return ec.fieldContext_FirmsPoint_longitude(ctx, field)
+	case "acqDate":
+		return ec.fieldContext_FirmsPoint_acqDate(ctx, field)
+	case "acqTime":
+		return ec.fieldContext_FirmsPoint_acqTime(ctx, field)
+	case "brightTi4":
+		return ec.fieldContext_FirmsPoint_brightTi4(ctx, field)
+	case "brightTi5":
+		return ec.fieldContext_FirmsPoint_brightTi5(ctx, field)
+	case "frp":
+		return ec.fieldContext_FirmsPoint_frp(ctx, field)
+	case "confidence":
+		return ec.fieldContext_FirmsPoint_confidence(ctx, field)
+	case "satellite":
+		return ec.fieldContext_FirmsPoint_satellite(ctx, field)
+	case "landcover":
+		return ec.fieldContext_FirmsPoint_landcover(ctx, field)
+	case "distIndustrialM":
+		return ec.fieldContext_FirmsPoint_distIndustrialM(ctx, field)
+	case "insideIndustrial":
+		return ec.fieldContext_FirmsPoint_insideIndustrial(ctx, field)
+	case "osmId":
+		return ec.fieldContext_FirmsPoint_osmId(ctx, field)
+	case "persistenceScore":
+		return ec.fieldContext_FirmsPoint_persistenceScore(ctx, field)
+	case "predictedClass":
+		return ec.fieldContext_FirmsPoint_predictedClass(ctx, field)
+	case "industrialProb":
+		return ec.fieldContext_FirmsPoint_industrialProb(ctx, field)
+	case "clusterId":
+		return ec.fieldContext_FirmsPoint_clusterId(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type FirmsPoint", field.Name)
+}
+
 func (ec *executionContext) childFields_Message(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "role":
@@ -632,6 +940,34 @@ func (ec *executionContext) childFields_Source(ctx context.Context, field graphq
 		return ec.fieldContext_Source_score(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Source", field.Name)
+}
+
+func (ec *executionContext) childFields_ThermalCluster(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_ThermalCluster_id(ctx, field)
+	case "centroidLat":
+		return ec.fieldContext_ThermalCluster_centroidLat(ctx, field)
+	case "centroidLon":
+		return ec.fieldContext_ThermalCluster_centroidLon(ctx, field)
+	case "count":
+		return ec.fieldContext_ThermalCluster_count(ctx, field)
+	case "avgFrp":
+		return ec.fieldContext_ThermalCluster_avgFrp(ctx, field)
+	case "maxFrp":
+		return ec.fieldContext_ThermalCluster_maxFrp(ctx, field)
+	case "persistence":
+		return ec.fieldContext_ThermalCluster_persistence(ctx, field)
+	case "firstSeen":
+		return ec.fieldContext_ThermalCluster_firstSeen(ctx, field)
+	case "lastSeen":
+		return ec.fieldContext_ThermalCluster_lastSeen(ctx, field)
+	case "predictedClass":
+		return ec.fieldContext_ThermalCluster_predictedClass(ctx, field)
+	case "osmId":
+		return ec.fieldContext_ThermalCluster_osmId(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type ThermalCluster", field.Name)
 }
 
 func (ec *executionContext) childFields_User(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -896,6 +1232,90 @@ func (ec *executionContext) field_Mutation_supportQuery_args(ctx context.Context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateFirmsPointClassification_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "predictedClass",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["predictedClass"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "industrialProb",
+		func(ctx context.Context, v any) (float64, error) {
+			return ec.unmarshalNFloat2float64(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["industrialProb"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "persistenceScore",
+		func(ctx context.Context, v any) (float64, error) {
+			return ec.unmarshalNFloat2float64(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["persistenceScore"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "distIndustrialM",
+		func(ctx context.Context, v any) (float64, error) {
+			return ec.unmarshalNFloat2float64(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["distIndustrialM"] = arg4
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "insideIndustrial",
+		func(ctx context.Context, v any) (bool, error) {
+			return ec.unmarshalNBoolean2bool(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["insideIndustrial"] = arg5
+	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "landcover",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["landcover"] = arg6
+	arg7, err := graphql.ProcessArgField(ctx, rawArgs, "clusterId",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOID2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["clusterId"] = arg7
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_upsertFirmsPoint_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "point",
+		func(ctx context.Context, v any) (api.FirmsPointInput, error) {
+			return ec.unmarshalNFirmsPointInput2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsPointInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["point"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -921,6 +1341,66 @@ func (ec *executionContext) field_Query_chatHistory_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["sessionId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_firmsPoints_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bbox",
+		func(ctx context.Context, v any) (api.BoundingBox, error) {
+			return ec.unmarshalNBoundingBox2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐBoundingBox(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["bbox"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "dateFrom",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dateFrom"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "dateTo",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dateTo"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "predictedClass",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["predictedClass"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg4
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_thermalClusters_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bbox",
+		func(ctx context.Context, v any) (api.BoundingBox, error) {
+			return ec.unmarshalNBoundingBox2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐBoundingBox(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["bbox"] = arg0
 	return args, nil
 }
 
@@ -1042,7 +1522,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _ChatChunk_delta(ctx context.Context, field graphql.CollectedField, obj *app.ChatChunk) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatChunk_delta(ctx context.Context, field graphql.CollectedField, obj *api.ChatChunk) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1065,7 +1545,7 @@ func (ec *executionContext) fieldContext_ChatChunk_delta(_ context.Context, fiel
 	return graphql.NewScalarFieldContext("ChatChunk", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _ChatChunk_done(ctx context.Context, field graphql.CollectedField, obj *app.ChatChunk) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatChunk_done(ctx context.Context, field graphql.CollectedField, obj *api.ChatChunk) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1088,7 +1568,7 @@ func (ec *executionContext) fieldContext_ChatChunk_done(_ context.Context, field
 	return graphql.NewScalarFieldContext("ChatChunk", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
-func (ec *executionContext) _ChatChunk_sources(ctx context.Context, field graphql.CollectedField, obj *app.ChatChunk) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatChunk_sources(ctx context.Context, field graphql.CollectedField, obj *api.ChatChunk) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1100,7 +1580,7 @@ func (ec *executionContext) _ChatChunk_sources(ctx context.Context, field graphq
 			return obj.Sources, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v []*app.Source) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v []*api.Source) graphql.Marshaler {
 			return ec.marshalNSource2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐSourceᚄ(ctx, selections, v)
 		},
 		true,
@@ -1120,7 +1600,7 @@ func (ec *executionContext) fieldContext_ChatChunk_sources(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _ChatChunk_cached(ctx context.Context, field graphql.CollectedField, obj *app.ChatChunk) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatChunk_cached(ctx context.Context, field graphql.CollectedField, obj *api.ChatChunk) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1143,7 +1623,7 @@ func (ec *executionContext) fieldContext_ChatChunk_cached(_ context.Context, fie
 	return graphql.NewScalarFieldContext("ChatChunk", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
-func (ec *executionContext) _ChatReply_reply(ctx context.Context, field graphql.CollectedField, obj *app.ChatReply) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatReply_reply(ctx context.Context, field graphql.CollectedField, obj *api.ChatReply) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1166,7 +1646,7 @@ func (ec *executionContext) fieldContext_ChatReply_reply(_ context.Context, fiel
 	return graphql.NewScalarFieldContext("ChatReply", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _ChatReply_model(ctx context.Context, field graphql.CollectedField, obj *app.ChatReply) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatReply_model(ctx context.Context, field graphql.CollectedField, obj *api.ChatReply) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1189,7 +1669,7 @@ func (ec *executionContext) fieldContext_ChatReply_model(_ context.Context, fiel
 	return graphql.NewScalarFieldContext("ChatReply", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _ChatReply_sources(ctx context.Context, field graphql.CollectedField, obj *app.ChatReply) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatReply_sources(ctx context.Context, field graphql.CollectedField, obj *api.ChatReply) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1201,7 +1681,7 @@ func (ec *executionContext) _ChatReply_sources(ctx context.Context, field graphq
 			return obj.Sources, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v []*app.Source) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v []*api.Source) graphql.Marshaler {
 			return ec.marshalNSource2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐSourceᚄ(ctx, selections, v)
 		},
 		true,
@@ -1221,7 +1701,7 @@ func (ec *executionContext) fieldContext_ChatReply_sources(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _ChatReply_cached(ctx context.Context, field graphql.CollectedField, obj *app.ChatReply) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatReply_cached(ctx context.Context, field graphql.CollectedField, obj *api.ChatReply) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1244,7 +1724,7 @@ func (ec *executionContext) fieldContext_ChatReply_cached(_ context.Context, fie
 	return graphql.NewScalarFieldContext("ChatReply", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
-func (ec *executionContext) _ChatSession_id(ctx context.Context, field graphql.CollectedField, obj *app.ChatSession) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatSession_id(ctx context.Context, field graphql.CollectedField, obj *api.ChatSession) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1267,7 +1747,7 @@ func (ec *executionContext) fieldContext_ChatSession_id(_ context.Context, field
 	return graphql.NewScalarFieldContext("ChatSession", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
-func (ec *executionContext) _ChatSession_title(ctx context.Context, field graphql.CollectedField, obj *app.ChatSession) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatSession_title(ctx context.Context, field graphql.CollectedField, obj *api.ChatSession) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1290,7 +1770,7 @@ func (ec *executionContext) fieldContext_ChatSession_title(_ context.Context, fi
 	return graphql.NewScalarFieldContext("ChatSession", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _ChatSession_pinned(ctx context.Context, field graphql.CollectedField, obj *app.ChatSession) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatSession_pinned(ctx context.Context, field graphql.CollectedField, obj *api.ChatSession) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1313,7 +1793,7 @@ func (ec *executionContext) fieldContext_ChatSession_pinned(_ context.Context, f
 	return graphql.NewScalarFieldContext("ChatSession", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
-func (ec *executionContext) _ChatSession_updatedAt(ctx context.Context, field graphql.CollectedField, obj *app.ChatSession) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChatSession_updatedAt(ctx context.Context, field graphql.CollectedField, obj *api.ChatSession) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1336,7 +1816,421 @@ func (ec *executionContext) fieldContext_ChatSession_updatedAt(_ context.Context
 	return graphql.NewScalarFieldContext("ChatSession", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _Message_role(ctx context.Context, field graphql.CollectedField, obj *app.Message) (ret graphql.Marshaler) {
+func (ec *executionContext) _FirmsPoint_id(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_latitude(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_latitude(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Latitude, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_latitude(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_longitude(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_longitude(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Longitude, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_longitude(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_acqDate(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_acqDate(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AcqDate, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_acqDate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_acqTime(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_acqTime(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AcqTime, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_acqTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_brightTi4(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_brightTi4(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BrightTi4, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_brightTi4(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_brightTi5(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_brightTi5(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BrightTi5, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_brightTi5(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_frp(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_frp(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Frp, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_frp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_confidence(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_confidence(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Confidence, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_confidence(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_satellite(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_satellite(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Satellite, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_satellite(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_landcover(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_landcover(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Landcover, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_landcover(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_distIndustrialM(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_distIndustrialM(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DistIndustrialM, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_distIndustrialM(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_insideIndustrial(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_insideIndustrial(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.InsideIndustrial, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_insideIndustrial(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_osmId(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_osmId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OsmID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_osmId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_persistenceScore(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_persistenceScore(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PersistenceScore, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_persistenceScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_predictedClass(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_predictedClass(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PredictedClass, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_predictedClass(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_industrialProb(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_industrialProb(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IndustrialProb, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_industrialProb(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsPoint_clusterId(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsPoint_clusterId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ClusterID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOID2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsPoint_clusterId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsPoint", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _Message_role(ctx context.Context, field graphql.CollectedField, obj *api.Message) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1359,7 +2253,7 @@ func (ec *executionContext) fieldContext_Message_role(_ context.Context, field g
 	return graphql.NewScalarFieldContext("Message", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _Message_content(ctx context.Context, field graphql.CollectedField, obj *app.Message) (ret graphql.Marshaler) {
+func (ec *executionContext) _Message_content(ctx context.Context, field graphql.CollectedField, obj *api.Message) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1382,7 +2276,7 @@ func (ec *executionContext) fieldContext_Message_content(_ context.Context, fiel
 	return graphql.NewScalarFieldContext("Message", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _Message_createdAt(ctx context.Context, field graphql.CollectedField, obj *app.Message) (ret graphql.Marshaler) {
+func (ec *executionContext) _Message_createdAt(ctx context.Context, field graphql.CollectedField, obj *api.Message) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1418,7 +2312,7 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 			return ec.Resolvers.Mutation().Login(ctx, fc.Args["email"].(string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *app.User) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *api.User) graphql.Marshaler {
 			return ec.marshalNUser2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUser(ctx, selections, v)
 		},
 		true,
@@ -1529,7 +2423,7 @@ func (ec *executionContext) _Mutation_createChatSession(ctx context.Context, fie
 			return ec.Resolvers.Mutation().CreateChatSession(ctx, fc.Args["title"].(*string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *app.ChatSession) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *api.ChatSession) graphql.Marshaler {
 			return ec.marshalNChatSession2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatSession(ctx, selections, v)
 		},
 		true,
@@ -1661,7 +2555,7 @@ func (ec *executionContext) _Mutation_chat(ctx context.Context, field graphql.Co
 			return ec.Resolvers.Mutation().Chat(ctx, fc.Args["sessionId"].(string), fc.Args["message"].(string), fc.Args["provider"].(*string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *app.ChatReply) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *api.ChatReply) graphql.Marshaler {
 			return ec.marshalNChatReply2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatReply(ctx, selections, v)
 		},
 		true,
@@ -1705,7 +2599,7 @@ func (ec *executionContext) _Mutation_supportQuery(ctx context.Context, field gr
 			return ec.Resolvers.Mutation().SupportQuery(ctx, fc.Args["message"].(string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *app.ChatReply) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *api.ChatReply) graphql.Marshaler {
 			return ec.marshalNChatReply2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatReply(ctx, selections, v)
 		},
 		true,
@@ -1780,6 +2674,94 @@ func (ec *executionContext) fieldContext_Mutation_ingestSupport(ctx context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_upsertFirmsPoint(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_upsertFirmsPoint(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpsertFirmsPoint(ctx, fc.Args["point"].(api.FirmsPointInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_upsertFirmsPoint(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_upsertFirmsPoint_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateFirmsPointClassification(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_updateFirmsPointClassification(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateFirmsPointClassification(ctx, fc.Args["id"].(string), fc.Args["predictedClass"].(string), fc.Args["industrialProb"].(float64), fc.Args["persistenceScore"].(float64), fc.Args["distIndustrialM"].(float64), fc.Args["insideIndustrial"].(bool), fc.Args["landcover"].(int), fc.Args["clusterId"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_updateFirmsPointClassification(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateFirmsPointClassification_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1792,7 +2774,7 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 			return ec.Resolvers.Query().Me(ctx)
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *app.User) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *api.User) graphql.Marshaler {
 			return ec.marshalOUser2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUser(ctx, selections, v)
 		},
 		true,
@@ -1825,7 +2807,7 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 			return ec.Resolvers.Query().Users(ctx, fc.Args["limit"].(*int))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v []*app.User) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v []*api.User) graphql.Marshaler {
 			return ec.marshalNUser2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUserᚄ(ctx, selections, v)
 		},
 		true,
@@ -1891,7 +2873,7 @@ func (ec *executionContext) _Query_chatSessions(ctx context.Context, field graph
 			return ec.Resolvers.Query().ChatSessions(ctx)
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v []*app.ChatSession) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v []*api.ChatSession) graphql.Marshaler {
 			return ec.marshalNChatSession2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatSessionᚄ(ctx, selections, v)
 		},
 		true,
@@ -1924,7 +2906,7 @@ func (ec *executionContext) _Query_chatHistory(ctx context.Context, field graphq
 			return ec.Resolvers.Query().ChatHistory(ctx, fc.Args["sessionId"].(string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v []*app.Message) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v []*api.Message) graphql.Marshaler {
 			return ec.marshalNMessage2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐMessageᚄ(ctx, selections, v)
 		},
 		true,
@@ -1949,6 +2931,94 @@ func (ec *executionContext) fieldContext_Query_chatHistory(ctx context.Context, 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_chatHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_firmsPoints(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_firmsPoints(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().FirmsPoints(ctx, fc.Args["bbox"].(api.BoundingBox), fc.Args["dateFrom"].(*string), fc.Args["dateTo"].(*string), fc.Args["predictedClass"].(*string), fc.Args["limit"].(*int))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*api.FirmsPoint) graphql.Marshaler {
+			return ec.marshalNFirmsPoint2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsPointᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_firmsPoints(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_FirmsPoint(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_firmsPoints_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_thermalClusters(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_thermalClusters(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().ThermalClusters(ctx, fc.Args["bbox"].(api.BoundingBox))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*api.ThermalCluster) graphql.Marshaler {
+			return ec.marshalNThermalCluster2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐThermalClusterᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_thermalClusters(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ThermalCluster(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_thermalClusters_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2031,7 +3101,7 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Source_id(ctx context.Context, field graphql.CollectedField, obj *app.Source) (ret graphql.Marshaler) {
+func (ec *executionContext) _Source_id(ctx context.Context, field graphql.CollectedField, obj *api.Source) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -2054,7 +3124,7 @@ func (ec *executionContext) fieldContext_Source_id(_ context.Context, field grap
 	return graphql.NewScalarFieldContext("Source", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
-func (ec *executionContext) _Source_title(ctx context.Context, field graphql.CollectedField, obj *app.Source) (ret graphql.Marshaler) {
+func (ec *executionContext) _Source_title(ctx context.Context, field graphql.CollectedField, obj *api.Source) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -2077,7 +3147,7 @@ func (ec *executionContext) fieldContext_Source_title(_ context.Context, field g
 	return graphql.NewScalarFieldContext("Source", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _Source_text(ctx context.Context, field graphql.CollectedField, obj *app.Source) (ret graphql.Marshaler) {
+func (ec *executionContext) _Source_text(ctx context.Context, field graphql.CollectedField, obj *api.Source) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -2100,7 +3170,7 @@ func (ec *executionContext) fieldContext_Source_text(_ context.Context, field gr
 	return graphql.NewScalarFieldContext("Source", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _Source_score(ctx context.Context, field graphql.CollectedField, obj *app.Source) (ret graphql.Marshaler) {
+func (ec *executionContext) _Source_score(ctx context.Context, field graphql.CollectedField, obj *api.Source) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -2159,7 +3229,7 @@ func (ec *executionContext) _Subscription_chatStream(ctx context.Context, field 
 			return ec.Resolvers.Subscription().ChatStream(ctx, fc.Args["sessionId"].(string), fc.Args["message"].(string), fc.Args["provider"].(*string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *app.ChatChunk) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *api.ChatChunk) graphql.Marshaler {
 			return ec.marshalNChatChunk2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatChunk(ctx, selections, v)
 		},
 		true,
@@ -2203,7 +3273,7 @@ func (ec *executionContext) _Subscription_supportStream(ctx context.Context, fie
 			return ec.Resolvers.Subscription().SupportStream(ctx, fc.Args["message"].(string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *app.ChatChunk) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *api.ChatChunk) graphql.Marshaler {
 			return ec.marshalNChatChunk2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatChunk(ctx, selections, v)
 		},
 		true,
@@ -2234,7 +3304,260 @@ func (ec *executionContext) fieldContext_Subscription_supportStream(ctx context.
 	return fc, nil
 }
 
-func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *app.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _ThermalCluster_id(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_centroidLat(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_centroidLat(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CentroidLat, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_centroidLat(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_centroidLon(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_centroidLon(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CentroidLon, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_centroidLon(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_count(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_count(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Count, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_count(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_avgFrp(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_avgFrp(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AvgFrp, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_avgFrp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_maxFrp(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_maxFrp(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxFrp, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_maxFrp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_persistence(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_persistence(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Persistence, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_persistence(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_firstSeen(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_firstSeen(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.FirstSeen, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_firstSeen(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_lastSeen(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_lastSeen(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LastSeen, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_lastSeen(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_predictedClass(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_predictedClass(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PredictedClass, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_predictedClass(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _ThermalCluster_osmId(ctx context.Context, field graphql.CollectedField, obj *api.ThermalCluster) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ThermalCluster_osmId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OsmID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_ThermalCluster_osmId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ThermalCluster", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *api.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -2257,7 +3580,7 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	return graphql.NewScalarFieldContext("User", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
-func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *app.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *api.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3339,6 +4662,171 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputBoundingBox(ctx context.Context, obj any) (api.BoundingBox, error) {
+	var it api.BoundingBox
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"minLat", "minLon", "maxLat", "maxLon"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "minLat":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minLat"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinLat = data
+		case "minLon":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minLon"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinLon = data
+		case "maxLat":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxLat"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxLat = data
+		case "maxLon":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxLon"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxLon = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFirmsPointInput(ctx context.Context, obj any) (api.FirmsPointInput, error) {
+	var it api.FirmsPointInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "latitude", "longitude", "acqDate", "acqTime", "brightTi4", "brightTi5", "frp", "confidence", "satellite", "brightT31", "scan", "track"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "latitude":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("latitude"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Latitude = data
+		case "longitude":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("longitude"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Longitude = data
+		case "acqDate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("acqDate"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AcqDate = data
+		case "acqTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("acqTime"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AcqTime = data
+		case "brightTi4":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("brightTi4"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BrightTi4 = data
+		case "brightTi5":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("brightTi5"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BrightTi5 = data
+		case "frp":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("frp"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Frp = data
+		case "confidence":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confidence"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Confidence = data
+		case "satellite":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("satellite"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Satellite = data
+		case "brightT31":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("brightT31"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BrightT31 = data
+		case "scan":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scan"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Scan = data
+		case "track":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("track"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Track = data
+		}
+	}
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3349,7 +4837,7 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 var chatChunkImplementors = []string{"ChatChunk"}
 
-func (ec *executionContext) _ChatChunk(ctx context.Context, sel ast.SelectionSet, obj *app.ChatChunk) graphql.Marshaler {
+func (ec *executionContext) _ChatChunk(ctx context.Context, sel ast.SelectionSet, obj *api.ChatChunk) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, chatChunkImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3402,7 +4890,7 @@ func (ec *executionContext) _ChatChunk(ctx context.Context, sel ast.SelectionSet
 
 var chatReplyImplementors = []string{"ChatReply"}
 
-func (ec *executionContext) _ChatReply(ctx context.Context, sel ast.SelectionSet, obj *app.ChatReply) graphql.Marshaler {
+func (ec *executionContext) _ChatReply(ctx context.Context, sel ast.SelectionSet, obj *api.ChatReply) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, chatReplyImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3455,7 +4943,7 @@ func (ec *executionContext) _ChatReply(ctx context.Context, sel ast.SelectionSet
 
 var chatSessionImplementors = []string{"ChatSession"}
 
-func (ec *executionContext) _ChatSession(ctx context.Context, sel ast.SelectionSet, obj *app.ChatSession) graphql.Marshaler {
+func (ec *executionContext) _ChatSession(ctx context.Context, sel ast.SelectionSet, obj *api.ChatSession) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, chatSessionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3506,9 +4994,132 @@ func (ec *executionContext) _ChatSession(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var firmsPointImplementors = []string{"FirmsPoint"}
+
+func (ec *executionContext) _FirmsPoint(ctx context.Context, sel ast.SelectionSet, obj *api.FirmsPoint) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, firmsPointImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FirmsPoint")
+		case "id":
+			out.Values[i] = ec._FirmsPoint_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "latitude":
+			out.Values[i] = ec._FirmsPoint_latitude(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "longitude":
+			out.Values[i] = ec._FirmsPoint_longitude(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "acqDate":
+			out.Values[i] = ec._FirmsPoint_acqDate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "acqTime":
+			out.Values[i] = ec._FirmsPoint_acqTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "brightTi4":
+			out.Values[i] = ec._FirmsPoint_brightTi4(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "brightTi5":
+			out.Values[i] = ec._FirmsPoint_brightTi5(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "frp":
+			out.Values[i] = ec._FirmsPoint_frp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "confidence":
+			out.Values[i] = ec._FirmsPoint_confidence(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "satellite":
+			out.Values[i] = ec._FirmsPoint_satellite(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "landcover":
+			out.Values[i] = ec._FirmsPoint_landcover(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "distIndustrialM":
+			out.Values[i] = ec._FirmsPoint_distIndustrialM(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "insideIndustrial":
+			out.Values[i] = ec._FirmsPoint_insideIndustrial(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "osmId":
+			out.Values[i] = ec._FirmsPoint_osmId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "persistenceScore":
+			out.Values[i] = ec._FirmsPoint_persistenceScore(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "predictedClass":
+			out.Values[i] = ec._FirmsPoint_predictedClass(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "industrialProb":
+			out.Values[i] = ec._FirmsPoint_industrialProb(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "clusterId":
+			out.Values[i] = ec._FirmsPoint_clusterId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var messageImplementors = []string{"Message"}
 
-func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, obj *app.Message) graphql.Marshaler {
+func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, obj *api.Message) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, messageImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3633,6 +5244,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "ingestSupport":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_ingestSupport(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "upsertFirmsPoint":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_upsertFirmsPoint(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateFirmsPointClassification":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateFirmsPointClassification(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -3788,6 +5413,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "firmsPoints":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_firmsPoints(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "thermalClusters":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_thermalClusters(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -3825,7 +5494,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var sourceImplementors = []string{"Source"}
 
-func (ec *executionContext) _Source(ctx context.Context, sel ast.SelectionSet, obj *app.Source) graphql.Marshaler {
+func (ec *executionContext) _Source(ctx context.Context, sel ast.SelectionSet, obj *api.Source) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, sourceImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3900,9 +5569,97 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 }
 
+var thermalClusterImplementors = []string{"ThermalCluster"}
+
+func (ec *executionContext) _ThermalCluster(ctx context.Context, sel ast.SelectionSet, obj *api.ThermalCluster) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, thermalClusterImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ThermalCluster")
+		case "id":
+			out.Values[i] = ec._ThermalCluster_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "centroidLat":
+			out.Values[i] = ec._ThermalCluster_centroidLat(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "centroidLon":
+			out.Values[i] = ec._ThermalCluster_centroidLon(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "count":
+			out.Values[i] = ec._ThermalCluster_count(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "avgFrp":
+			out.Values[i] = ec._ThermalCluster_avgFrp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxFrp":
+			out.Values[i] = ec._ThermalCluster_maxFrp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "persistence":
+			out.Values[i] = ec._ThermalCluster_persistence(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "firstSeen":
+			out.Values[i] = ec._ThermalCluster_firstSeen(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lastSeen":
+			out.Values[i] = ec._ThermalCluster_lastSeen(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "predictedClass":
+			out.Values[i] = ec._ThermalCluster_predictedClass(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "osmId":
+			out.Values[i] = ec._ThermalCluster_osmId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var userImplementors = []string{"User"}
 
-func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *app.User) graphql.Marshaler {
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *api.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -4351,11 +6108,16 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNChatChunk2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatChunk(ctx context.Context, sel ast.SelectionSet, v app.ChatChunk) graphql.Marshaler {
+func (ec *executionContext) unmarshalNBoundingBox2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐBoundingBox(ctx context.Context, v any) (api.BoundingBox, error) {
+	res, err := ec.unmarshalInputBoundingBox(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNChatChunk2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatChunk(ctx context.Context, sel ast.SelectionSet, v api.ChatChunk) graphql.Marshaler {
 	return ec._ChatChunk(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNChatChunk2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatChunk(ctx context.Context, sel ast.SelectionSet, v *app.ChatChunk) graphql.Marshaler {
+func (ec *executionContext) marshalNChatChunk2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatChunk(ctx context.Context, sel ast.SelectionSet, v *api.ChatChunk) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4365,11 +6127,11 @@ func (ec *executionContext) marshalNChatChunk2ᚖgithubᚗcomᚋidk4whatamiusing
 	return ec._ChatChunk(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNChatReply2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatReply(ctx context.Context, sel ast.SelectionSet, v app.ChatReply) graphql.Marshaler {
+func (ec *executionContext) marshalNChatReply2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatReply(ctx context.Context, sel ast.SelectionSet, v api.ChatReply) graphql.Marshaler {
 	return ec._ChatReply(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNChatReply2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatReply(ctx context.Context, sel ast.SelectionSet, v *app.ChatReply) graphql.Marshaler {
+func (ec *executionContext) marshalNChatReply2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatReply(ctx context.Context, sel ast.SelectionSet, v *api.ChatReply) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4379,11 +6141,11 @@ func (ec *executionContext) marshalNChatReply2ᚖgithubᚗcomᚋidk4whatamiusing
 	return ec._ChatReply(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNChatSession2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatSession(ctx context.Context, sel ast.SelectionSet, v app.ChatSession) graphql.Marshaler {
+func (ec *executionContext) marshalNChatSession2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatSession(ctx context.Context, sel ast.SelectionSet, v api.ChatSession) graphql.Marshaler {
 	return ec._ChatSession(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNChatSession2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatSessionᚄ(ctx context.Context, sel ast.SelectionSet, v []*app.ChatSession) graphql.Marshaler {
+func (ec *executionContext) marshalNChatSession2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatSessionᚄ(ctx context.Context, sel ast.SelectionSet, v []*api.ChatSession) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
 		fc.Result = &v[i]
@@ -4399,7 +6161,7 @@ func (ec *executionContext) marshalNChatSession2ᚕᚖgithubᚗcomᚋidk4whatami
 	return ret
 }
 
-func (ec *executionContext) marshalNChatSession2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatSession(ctx context.Context, sel ast.SelectionSet, v *app.ChatSession) graphql.Marshaler {
+func (ec *executionContext) marshalNChatSession2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐChatSession(ctx context.Context, sel ast.SelectionSet, v *api.ChatSession) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4407,6 +6169,37 @@ func (ec *executionContext) marshalNChatSession2ᚖgithubᚗcomᚋidk4whatamiusi
 		return graphql.Null
 	}
 	return ec._ChatSession(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFirmsPoint2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsPointᚄ(ctx context.Context, sel ast.SelectionSet, v []*api.FirmsPoint) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNFirmsPoint2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsPoint(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFirmsPoint2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsPoint(ctx context.Context, sel ast.SelectionSet, v *api.FirmsPoint) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FirmsPoint(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFirmsPointInput2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsPointInput(ctx context.Context, v any) (api.FirmsPointInput, error) {
+	res, err := ec.unmarshalInputFirmsPointInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v any) (float64, error) {
@@ -4457,7 +6250,7 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) marshalNMessage2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐMessageᚄ(ctx context.Context, sel ast.SelectionSet, v []*app.Message) graphql.Marshaler {
+func (ec *executionContext) marshalNMessage2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐMessageᚄ(ctx context.Context, sel ast.SelectionSet, v []*api.Message) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
 		fc.Result = &v[i]
@@ -4473,7 +6266,7 @@ func (ec *executionContext) marshalNMessage2ᚕᚖgithubᚗcomᚋidk4whatamiusin
 	return ret
 }
 
-func (ec *executionContext) marshalNMessage2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐMessage(ctx context.Context, sel ast.SelectionSet, v *app.Message) graphql.Marshaler {
+func (ec *executionContext) marshalNMessage2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐMessage(ctx context.Context, sel ast.SelectionSet, v *api.Message) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4483,7 +6276,7 @@ func (ec *executionContext) marshalNMessage2ᚖgithubᚗcomᚋidk4whatamiusing�
 	return ec._Message(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNSource2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*app.Source) graphql.Marshaler {
+func (ec *executionContext) marshalNSource2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*api.Source) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
 		fc.Result = &v[i]
@@ -4499,7 +6292,7 @@ func (ec *executionContext) marshalNSource2ᚕᚖgithubᚗcomᚋidk4whatamiusing
 	return ret
 }
 
-func (ec *executionContext) marshalNSource2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐSource(ctx context.Context, sel ast.SelectionSet, v *app.Source) graphql.Marshaler {
+func (ec *executionContext) marshalNSource2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐSource(ctx context.Context, sel ast.SelectionSet, v *api.Source) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4554,11 +6347,37 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) marshalNUser2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUser(ctx context.Context, sel ast.SelectionSet, v app.User) graphql.Marshaler {
+func (ec *executionContext) marshalNThermalCluster2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐThermalClusterᚄ(ctx context.Context, sel ast.SelectionSet, v []*api.ThermalCluster) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNThermalCluster2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐThermalCluster(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNThermalCluster2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐThermalCluster(ctx context.Context, sel ast.SelectionSet, v *api.ThermalCluster) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ThermalCluster(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUser2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUser(ctx context.Context, sel ast.SelectionSet, v api.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*app.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*api.User) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
 		fc.Result = &v[i]
@@ -4574,7 +6393,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋidk4whatamiusing�
 	return ret
 }
 
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUser(ctx context.Context, sel ast.SelectionSet, v *app.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUser(ctx context.Context, sel ast.SelectionSet, v *api.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4754,6 +6573,41 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v any) (*float64, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalFloatContext(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	res := graphql.MarshalFloatContext(*v)
+	return graphql.WrapContextMarshaler(ctx, res)
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -4790,7 +6644,7 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUser(ctx context.Context, sel ast.SelectionSet, v *app.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐUser(ctx context.Context, sel ast.SelectionSet, v *api.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

@@ -41,12 +41,73 @@ type Message {
   createdAt: String!
 }
 
+type FirmsPoint {
+  id: ID!
+  latitude: Float!
+  longitude: Float!
+  acqDate: String!
+  acqTime: String!
+  brightTi4: Float!
+  brightTi5: Float!
+  frp: Float!
+  confidence: String!
+  satellite: String!
+  landcover: Int!
+  distIndustrialM: Float!
+  insideIndustrial: Boolean!
+  osmId: String!
+  persistenceScore: Float!
+  predictedClass: String!
+  industrialProb: Float!
+  clusterId: ID
+}
+
+type ThermalCluster {
+  id: ID!
+  centroidLat: Float!
+  centroidLon: Float!
+  count: Int!
+  avgFrp: Float!
+  maxFrp: Float!
+  persistence: Float!
+  firstSeen: String!
+  lastSeen: String!
+  predictedClass: String!
+  osmId: String
+}
+
+input BoundingBox {
+  minLat: Float!
+  minLon: Float!
+  maxLat: Float!
+  maxLon: Float!
+}
+
 type Query {
   me: User
   users(limit: Int = 50): [User!]!          # gRPC -> db (Rust), cached in Redis 7d
   health: String!
   chatSessions: [ChatSession!]!             # sidebar list (per user)
   chatHistory(sessionId: ID!): [Message!]!  # Redis fast path, Postgres primary
+  # PS162 FIRMS: bbox-filtered reads, cached in Redis by bbox+date+class hash
+  firmsPoints(bbox: BoundingBox!, dateFrom: String, dateTo: String, predictedClass: String, limit: Int = 500): [FirmsPoint!]!
+  thermalClusters(bbox: BoundingBox!): [ThermalCluster!]!
+}
+
+input FirmsPointInput {
+  id: ID!
+  latitude: Float!
+  longitude: Float!
+  acqDate: String!
+  acqTime: String
+  brightTi4: Float!
+  brightTi5: Float!
+  frp: Float!
+  confidence: String!
+  satellite: String!
+  brightT31: Float
+  scan: Float
+  track: Float
 }
 
 type Mutation {
@@ -61,6 +122,10 @@ type Mutation {
   # knowledge-base-only support answer (local TinyLlama Q4)
   supportQuery(message: String!): ChatReply!
   ingestSupport(documents: [String!]!): Int!
+  # PS162 FIRMS: raw ingestion write-path (classification fields default to unknown/0
+  # until the Go<->Python AI wiring lands - tracked separately)
+  upsertFirmsPoint(point: FirmsPointInput!): ID!
+  updateFirmsPointClassification(id: ID!, predictedClass: String!, industrialProb: Float!, persistenceScore: Float!, distIndustrialM: Float!, insideIndustrial: Boolean!, landcover: Int!, clusterId: ID): Boolean!
 }
 
 type Subscription {

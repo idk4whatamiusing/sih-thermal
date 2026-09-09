@@ -134,6 +134,51 @@ func (r *mutationResolver) IngestSupport(ctx context.Context, documents []string
 	return int(rep.Chunks), nil
 }
 
+func (r *mutationResolver) UpsertFirmsPoint(ctx context.Context, point app.FirmsPointInput) (string, error) {
+	user := oauth.UserID(ctx)
+	if user == "" {
+		return "", errUnauthorized
+	}
+	pb := &dbpb.FirmsPoint{
+		Id: point.ID, Latitude: point.Latitude, Longitude: point.Longitude,
+		AcqDate: point.AcqDate, BrightTi4: point.BrightTi4, BrightTi5: point.BrightTi5,
+		Frp: point.Frp, Confidence: point.Confidence, Satellite: point.Satellite,
+	}
+	if point.AcqTime != nil {
+		pb.AcqTime = *point.AcqTime
+	}
+	if point.BrightT31 != nil {
+		pb.BrightT31 = *point.BrightT31
+	}
+	if point.Scan != nil {
+		pb.Scan = *point.Scan
+	}
+	if point.Track != nil {
+		pb.Track = *point.Track
+	}
+	rep, err := r.Clients.DB.UpsertFirmsPoint(r.Clients.Ctx(ctx), &dbpb.UpsertFirmsPointRequest{Point: pb})
+	if err != nil {
+		return "", err
+	}
+	return rep.Id, nil
+}
+
+func (r *mutationResolver) UpdateFirmsPointClassification(ctx context.Context, id string, predictedClass string, industrialProb float64, persistenceScore float64, distIndustrialM float64, insideIndustrial bool, landcover int, clusterID *string) (bool, error) {
+	user := oauth.UserID(ctx)
+	if user == "" {
+		return false, errUnauthorized
+	}
+	cid := ""
+	if clusterID != nil {
+		cid = *clusterID
+	}
+	_, err := r.Clients.DB.UpdateFirmsPointClassification(r.Clients.Ctx(ctx), &dbpb.UpdateFirmsPointClassificationRequest{
+		Id: id, PredictedClass: predictedClass, IndustrialProb: industrialProb, PersistenceScore: persistenceScore,
+		DistIndustrialM: distIndustrialM, InsideIndustrial: insideIndustrial, Landcover: int32(landcover), ClusterId: cid,
+	})
+	return err == nil, err
+}
+
 // ---- queries ----
 
 func (r *queryResolver) Me(ctx context.Context) (*app.User, error) {
@@ -213,6 +258,61 @@ func (r *queryResolver) ChatHistory(ctx context.Context, sessionID string) ([]*a
 	}
 	r.Store.SetHistory(ctx, sessionID, msgs)
 	return out, nil
+}
+
+func (r *queryResolver) FirmsPoints(ctx context.Context, bbox app.BoundingBox, dateFrom *string, dateTo *string, predictedClass *string, limit *int) ([]*app.FirmsPoint, error) {
+	n := 500
+	if limit != nil {
+		n = *limit
+	}
+	from, to, class := "", "", ""
+	if dateFrom != nil {
+		from = *dateFrom
+	}
+	if dateTo != nil {
+		to = *dateTo
+	}
+	if predictedClass != nil {
+		class = *predictedClass
+	}
+	key := dbFirmsPointsKey(bbox, from, to, class, n)
+	var cached []*app.FirmsPoint
+	if r.Store.GetJSON(ctx, key, &cached) && cached != nil {
+		return cached, nil // Redis 7d fast path
+	}
+	rep, err := r.Clients.DB.ListFirmsPoints(r.Clients.Ctx(ctx), &dbpb.ListFirmsPointsRequest{
+		MinLat: bbox.MinLat, MinLon: bbox.MinLon, MaxLat: bbox.MaxLat, MaxLon: bbox.MaxLon,
+		DateFrom: from, DateTo: to, PredictedClass: class, Limit: int32(n),
+	})
+	if err != nil {
+		return nil, err
+	}
+	points := make([]*app.FirmsPoint, len(rep.Points))
+	for i, p := range rep.Points {
+		points[i] = firmsPointFromPB(p)
+	}
+	r.Store.SetJSON(ctx, key, points)
+	return points, nil
+}
+
+func (r *queryResolver) ThermalClusters(ctx context.Context, bbox app.BoundingBox) ([]*app.ThermalCluster, error) {
+	key := dbThermalClustersKey(bbox)
+	var cached []*app.ThermalCluster
+	if r.Store.GetJSON(ctx, key, &cached) && cached != nil {
+		return cached, nil // Redis 7d fast path
+	}
+	rep, err := r.Clients.DB.ListThermalClusters(r.Clients.Ctx(ctx), &dbpb.ListThermalClustersRequest{
+		MinLat: bbox.MinLat, MinLon: bbox.MinLon, MaxLat: bbox.MaxLat, MaxLon: bbox.MaxLon,
+	})
+	if err != nil {
+		return nil, err
+	}
+	clusters := make([]*app.ThermalCluster, len(rep.Clusters))
+	for i, c := range rep.Clusters {
+		clusters[i] = thermalClusterFromPB(c)
+	}
+	r.Store.SetJSON(ctx, key, clusters)
+	return clusters, nil
 }
 
 // ---- subscriptions ----

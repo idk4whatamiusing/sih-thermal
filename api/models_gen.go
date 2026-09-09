@@ -30,6 +30,27 @@ type ChatSession struct {
 	UpdatedAt string `json:"updatedAt"`
 }
 
+type ClassifyFirmsPointInput struct {
+	Lat              float64  `json:"lat"`
+	Lon              float64  `json:"lon"`
+	Frp              *float64 `json:"frp,omitempty"`
+	BrightTi4        *float64 `json:"brightTi4,omitempty"`
+	BrightTi5        *float64 `json:"brightTi5,omitempty"`
+	Confidence       *string  `json:"confidence,omitempty"`
+	Satellite        *string  `json:"satellite,omitempty"`
+	DistIndustrialM  *float64 `json:"distIndustrialM,omitempty"`
+	InsideIndustrial *bool    `json:"insideIndustrial,omitempty"`
+	Persistence      *float64 `json:"persistence,omitempty"`
+	Landcover        *int     `json:"landcover,omitempty"`
+}
+
+type FirmsClassification struct {
+	PredictedClass string   `json:"predictedClass"`
+	IndustrialProb float64  `json:"industrialProb"`
+	Persistence    float64  `json:"persistence"`
+	Reasons        []string `json:"reasons"`
+}
+
 type FirmsPoint struct {
 	ID               string  `json:"id"`
 	Latitude         float64 `json:"latitude"`

@@ -59,6 +59,13 @@ type ComplexityRoot struct {
 		UpdatedAt func(childComplexity int) int
 	}
 
+	FirmsClassification struct {
+		IndustrialProb func(childComplexity int) int
+		Persistence    func(childComplexity int) int
+		PredictedClass func(childComplexity int) int
+		Reasons        func(childComplexity int) int
+	}
+
 	FirmsPoint struct {
 		AcqDate          func(childComplexity int) int
 		AcqTime          func(childComplexity int) int
@@ -89,8 +96,10 @@ type ComplexityRoot struct {
 	Mutation struct {
 		Broadcast                      func(childComplexity int, message string) int
 		Chat                           func(childComplexity int, sessionID string, message string, provider *string) int
+		ClassifyFirmsPoint             func(childComplexity int, input api.ClassifyFirmsPointInput) int
 		CreateChatSession              func(childComplexity int, title *string) int
 		DeleteSession                  func(childComplexity int, id string) int
+		IngestFirms                    func(childComplexity int, bbox api.BoundingBox, dateFrom string, dateTo string) int
 		IngestSupport                  func(childComplexity int, documents []string) int
 		Login                          func(childComplexity int, email string) int
 		Logout                         func(childComplexity int) int
@@ -159,6 +168,8 @@ type MutationResolver interface {
 	IngestSupport(ctx context.Context, documents []string) (int, error)
 	UpsertFirmsPoint(ctx context.Context, point api.FirmsPointInput) (string, error)
 	UpdateFirmsPointClassification(ctx context.Context, id string, predictedClass string, industrialProb float64, persistenceScore float64, distIndustrialM float64, insideIndustrial bool, landcover int, clusterID *string) (bool, error)
+	ClassifyFirmsPoint(ctx context.Context, input api.ClassifyFirmsPointInput) (*api.FirmsClassification, error)
+	IngestFirms(ctx context.Context, bbox api.BoundingBox, dateFrom string, dateTo string) (bool, error)
 }
 type QueryResolver interface {
 	Me(ctx context.Context) (*api.User, error)
@@ -267,6 +278,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.ChatSession.UpdatedAt(childComplexity), true
+
+	case "FirmsClassification.industrialProb":
+		if e.ComplexityRoot.FirmsClassification.IndustrialProb == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsClassification.IndustrialProb(childComplexity), true
+	case "FirmsClassification.persistence":
+		if e.ComplexityRoot.FirmsClassification.Persistence == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsClassification.Persistence(childComplexity), true
+	case "FirmsClassification.predictedClass":
+		if e.ComplexityRoot.FirmsClassification.PredictedClass == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsClassification.PredictedClass(childComplexity), true
+	case "FirmsClassification.reasons":
+		if e.ComplexityRoot.FirmsClassification.Reasons == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsClassification.Reasons(childComplexity), true
 
 	case "FirmsPoint.acqDate":
 		if e.ComplexityRoot.FirmsPoint.AcqDate == nil {
@@ -418,6 +454,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.Chat(childComplexity, args["sessionId"].(string), args["message"].(string), args["provider"].(*string)), true
+	case "Mutation.classifyFirmsPoint":
+		if e.ComplexityRoot.Mutation.ClassifyFirmsPoint == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_classifyFirmsPoint_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ClassifyFirmsPoint(childComplexity, args["input"].(api.ClassifyFirmsPointInput)), true
 	case "Mutation.createChatSession":
 		if e.ComplexityRoot.Mutation.CreateChatSession == nil {
 			break
@@ -440,6 +487,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.DeleteSession(childComplexity, args["id"].(string)), true
+	case "Mutation.ingestFirms":
+		if e.ComplexityRoot.Mutation.IngestFirms == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_ingestFirms_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.IngestFirms(childComplexity, args["bbox"].(api.BoundingBox), args["dateFrom"].(string), args["dateTo"].(string)), true
 	case "Mutation.ingestSupport":
 		if e.ComplexityRoot.Mutation.IngestSupport == nil {
 			break
@@ -720,6 +778,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputBoundingBox,
+		ec.unmarshalInputClassifyFirmsPointInput,
 		ec.unmarshalInputFirmsPointInput,
 	)
 	first := true
@@ -872,6 +931,20 @@ func (ec *executionContext) childFields_ChatSession(ctx context.Context, field g
 		return ec.fieldContext_ChatSession_updatedAt(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type ChatSession", field.Name)
+}
+
+func (ec *executionContext) childFields_FirmsClassification(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "predictedClass":
+		return ec.fieldContext_FirmsClassification_predictedClass(ctx, field)
+	case "industrialProb":
+		return ec.fieldContext_FirmsClassification_industrialProb(ctx, field)
+	case "persistence":
+		return ec.fieldContext_FirmsClassification_persistence(ctx, field)
+	case "reasons":
+		return ec.fieldContext_FirmsClassification_reasons(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type FirmsClassification", field.Name)
 }
 
 func (ec *executionContext) childFields_FirmsPoint(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -1140,6 +1213,20 @@ func (ec *executionContext) field_Mutation_chat_args(ctx context.Context, rawArg
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_classifyFirmsPoint_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (api.ClassifyFirmsPointInput, error) {
+			return ec.unmarshalNClassifyFirmsPointInput2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐClassifyFirmsPointInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createChatSession_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1165,6 +1252,36 @@ func (ec *executionContext) field_Mutation_deleteSession_args(ctx context.Contex
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_ingestFirms_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bbox",
+		func(ctx context.Context, v any) (api.BoundingBox, error) {
+			return ec.unmarshalNBoundingBox2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐBoundingBox(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["bbox"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "dateFrom",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dateFrom"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "dateTo",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dateTo"] = arg2
 	return args, nil
 }
 
@@ -1814,6 +1931,98 @@ func (ec *executionContext) _ChatSession_updatedAt(ctx context.Context, field gr
 }
 func (ec *executionContext) fieldContext_ChatSession_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("ChatSession", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsClassification_predictedClass(ctx context.Context, field graphql.CollectedField, obj *api.FirmsClassification) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsClassification_predictedClass(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PredictedClass, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsClassification_predictedClass(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsClassification", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsClassification_industrialProb(ctx context.Context, field graphql.CollectedField, obj *api.FirmsClassification) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsClassification_industrialProb(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IndustrialProb, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsClassification_industrialProb(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsClassification", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsClassification_persistence(ctx context.Context, field graphql.CollectedField, obj *api.FirmsClassification) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsClassification_persistence(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Persistence, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsClassification_persistence(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsClassification", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsClassification_reasons(ctx context.Context, field graphql.CollectedField, obj *api.FirmsClassification) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsClassification_reasons(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reasons, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalNString2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsClassification_reasons(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FirmsClassification", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _FirmsPoint_id(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
@@ -2756,6 +2965,94 @@ func (ec *executionContext) fieldContext_Mutation_updateFirmsPointClassification
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateFirmsPointClassification_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_classifyFirmsPoint(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_classifyFirmsPoint(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ClassifyFirmsPoint(ctx, fc.Args["input"].(api.ClassifyFirmsPointInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *api.FirmsClassification) graphql.Marshaler {
+			return ec.marshalNFirmsClassification2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsClassification(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_classifyFirmsPoint(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_FirmsClassification(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_classifyFirmsPoint_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_ingestFirms(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_ingestFirms(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().IngestFirms(ctx, fc.Args["bbox"].(api.BoundingBox), fc.Args["dateFrom"].(string), fc.Args["dateTo"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_ingestFirms(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_ingestFirms_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4713,6 +5010,106 @@ func (ec *executionContext) unmarshalInputBoundingBox(ctx context.Context, obj a
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputClassifyFirmsPointInput(ctx context.Context, obj any) (api.ClassifyFirmsPointInput, error) {
+	var it api.ClassifyFirmsPointInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"lat", "lon", "frp", "brightTi4", "brightTi5", "confidence", "satellite", "distIndustrialM", "insideIndustrial", "persistence", "landcover"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "lat":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lat"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lat = data
+		case "lon":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lon"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lon = data
+		case "frp":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("frp"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Frp = data
+		case "brightTi4":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("brightTi4"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BrightTi4 = data
+		case "brightTi5":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("brightTi5"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BrightTi5 = data
+		case "confidence":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confidence"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Confidence = data
+		case "satellite":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("satellite"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Satellite = data
+		case "distIndustrialM":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("distIndustrialM"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DistIndustrialM = data
+		case "insideIndustrial":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("insideIndustrial"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InsideIndustrial = data
+		case "persistence":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("persistence"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Persistence = data
+		case "landcover":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("landcover"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Landcover = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputFirmsPointInput(ctx context.Context, obj any) (api.FirmsPointInput, error) {
 	var it api.FirmsPointInput
 	if obj == nil {
@@ -4970,6 +5367,59 @@ func (ec *executionContext) _ChatSession(ctx context.Context, sel ast.SelectionS
 			}
 		case "updatedAt":
 			out.Values[i] = ec._ChatSession_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var firmsClassificationImplementors = []string{"FirmsClassification"}
+
+func (ec *executionContext) _FirmsClassification(ctx context.Context, sel ast.SelectionSet, obj *api.FirmsClassification) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, firmsClassificationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FirmsClassification")
+		case "predictedClass":
+			out.Values[i] = ec._FirmsClassification_predictedClass(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "industrialProb":
+			out.Values[i] = ec._FirmsClassification_industrialProb(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "persistence":
+			out.Values[i] = ec._FirmsClassification_persistence(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reasons":
+			out.Values[i] = ec._FirmsClassification_reasons(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -5258,6 +5708,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateFirmsPointClassification":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateFirmsPointClassification(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "classifyFirmsPoint":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_classifyFirmsPoint(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ingestFirms":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_ingestFirms(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -6169,6 +6633,25 @@ func (ec *executionContext) marshalNChatSession2ᚖgithubᚗcomᚋidk4whatamiusi
 		return graphql.Null
 	}
 	return ec._ChatSession(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNClassifyFirmsPointInput2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐClassifyFirmsPointInput(ctx context.Context, v any) (api.ClassifyFirmsPointInput, error) {
+	res, err := ec.unmarshalInputClassifyFirmsPointInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFirmsClassification2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsClassification(ctx context.Context, sel ast.SelectionSet, v api.FirmsClassification) graphql.Marshaler {
+	return ec._FirmsClassification(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFirmsClassification2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsClassification(ctx context.Context, sel ast.SelectionSet, v *api.FirmsClassification) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FirmsClassification(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNFirmsPoint2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐFirmsPointᚄ(ctx context.Context, sel ast.SelectionSet, v []*api.FirmsPoint) graphql.Marshaler {

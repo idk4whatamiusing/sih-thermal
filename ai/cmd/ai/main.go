@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/idk4whatamiusing/meridian_stack/ai/internal/firms"
 	"github.com/idk4whatamiusing/meridian_stack/ai/internal/providers"
 	"github.com/idk4whatamiusing/meridian_stack/ai/internal/rag"
 	aipb "github.com/idk4whatamiusing/meridian_stack/api/pb/aipb"
@@ -25,7 +26,8 @@ const (
 
 type server struct {
 	aipb.UnimplementedAiServer
-	rag *rag.Client
+	rag   *rag.Client
+	firms *firms.Client
 }
 
 func envOr(k, def string) string {
@@ -215,6 +217,96 @@ func (s *server) Predict(ctx context.Context, req *aipb.PredictRequest) (*aipb.P
 	}
 }
 
+func (s *server) ClassifyFirmsPoint(ctx context.Context, req *aipb.ClassifyFirmsPointRequest) (*aipb.ClassifyFirmsPointReply, error) {
+	preq := firms.PredictRequest{Lat: req.GetLat(), Lon: req.GetLon()}
+	if req.GetFrp() != 0 {
+		v := req.GetFrp()
+		preq.Frp = &v
+	}
+	if req.GetBrightTi4() != 0 {
+		v := req.GetBrightTi4()
+		preq.BrightTi4 = &v
+	}
+	if req.GetBrightTi5() != 0 {
+		v := req.GetBrightTi5()
+		preq.BrightTi5 = &v
+	}
+	if req.GetConfidence() != "" {
+		v := req.GetConfidence()
+		preq.Confidence = &v
+	}
+	if req.GetSatellite() != "" {
+		v := req.GetSatellite()
+		preq.Satellite = &v
+	}
+	if req.GetDistIndustrialM() != 0 {
+		v := req.GetDistIndustrialM()
+		preq.DistIndustrialM = &v
+	}
+	if req.GetInsideIndustrial() {
+		v := true
+		preq.InsideIndustrial = &v
+	}
+	if req.GetPersistence() != 0 {
+		v := req.GetPersistence()
+		preq.Persistence = &v
+	}
+	if req.GetLandcover() != 0 {
+		v := req.GetLandcover()
+		preq.Landcover = &v
+	}
+	rep, err := s.firms.Predict(preq)
+	if err != nil {
+		return nil, err
+	}
+	return &aipb.ClassifyFirmsPointReply{
+		PredictedClass: rep.PredictedClass, IndustrialProb: rep.IndustrialProb,
+		Persistence: rep.Persistence, Reasons: rep.Reasons,
+	}, nil
+}
+
+func (s *server) ClusterFirmsPoints(ctx context.Context, req *aipb.ClusterFirmsPointsRequest) (*aipb.ClusterFirmsPointsReply, error) {
+	pts := make([]firms.ClusterPoint, len(req.GetPoints()))
+	for i, p := range req.GetPoints() {
+		cp := firms.ClusterPoint{Lat: p.GetLat(), Lon: p.GetLon()}
+		if p.GetFrp() != 0 {
+			v := p.GetFrp()
+			cp.Frp = &v
+		}
+		pts[i] = cp
+	}
+	creq := firms.ClusterRequest{Points: pts, EpsM: 1000, MinSamples: 3, WindowDays: 30}
+	if req.GetEpsM() != 0 {
+		creq.EpsM = req.GetEpsM()
+	}
+	if req.GetMinSamples() != 0 {
+		creq.MinSamples = int(req.GetMinSamples())
+	}
+	if req.GetWindowDays() != 0 {
+		creq.WindowDays = int(req.GetWindowDays())
+	}
+	rep, err := s.firms.Cluster(creq)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*aipb.FirmsClusterPointOut, len(rep.Clusters))
+	for i, c := range rep.Clusters {
+		out[i] = &aipb.FirmsClusterPointOut{Lat: c.Lat, Lon: c.Lon, Cluster: int32(c.Cluster), Persistence: c.Persistence}
+	}
+	return &aipb.ClusterFirmsPointsReply{Clusters: out, NClusters: int32(rep.NClusters)}, nil
+}
+
+func (s *server) IngestFirms(ctx context.Context, req *aipb.IngestFirmsRequest) (*aipb.IngestFirmsReply, error) {
+	rep, err := s.firms.Ingest(firms.IngestRequest{
+		Bbox:     [4]float64{req.GetMinLat(), req.GetMinLon(), req.GetMaxLat(), req.GetMaxLon()},
+		DateFrom: req.GetDateFrom(), DateTo: req.GetDateTo(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &aipb.IngestFirmsReply{Ok: rep.Ok, Error: rep.Error}, nil
+}
+
 // ---- small helpers ----
 
 func buildMsgs(system, ragContext, message string) []providers.Message {
@@ -277,7 +369,8 @@ func main() {
 	}
 	log.Printf("ai gRPC listening on %s (rag sidecar: %s)", grpcAddr, envOr("RAG_URL", "http://localhost:8003"))
 
-	s := &server{rag: rag.New(envOr("RAG_URL", "http://localhost:8003"))}
+	ragURL := envOr("RAG_URL", "http://localhost:8003")
+	s := &server{rag: rag.New(ragURL), firms: firms.New(envOr("FIRMS_URL", ragURL))}
 	gs := grpc.NewServer()
 	aipb.RegisterAiServer(gs, s)
 	hs := health.NewServer()

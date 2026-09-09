@@ -94,6 +94,27 @@ type Query {
   thermalClusters(bbox: BoundingBox!): [ThermalCluster!]!
 }
 
+type FirmsClassification {
+  predictedClass: String!
+  industrialProb: Float!
+  persistence: Float!
+  reasons: [String!]!
+}
+
+input ClassifyFirmsPointInput {
+  lat: Float!
+  lon: Float!
+  frp: Float
+  brightTi4: Float
+  brightTi5: Float
+  confidence: String
+  satellite: String
+  distIndustrialM: Float
+  insideIndustrial: Boolean
+  persistence: Float
+  landcover: Int
+}
+
 input FirmsPointInput {
   id: ID!
   latitude: Float!
@@ -122,10 +143,14 @@ type Mutation {
   # knowledge-base-only support answer (local TinyLlama Q4)
   supportQuery(message: String!): ChatReply!
   ingestSupport(documents: [String!]!): Int!
-  # PS162 FIRMS: raw ingestion write-path (classification fields default to unknown/0
-  # until the Go<->Python AI wiring lands - tracked separately)
+  # PS162 FIRMS: raw ingestion write-path
   upsertFirmsPoint(point: FirmsPointInput!): ID!
   updateFirmsPointClassification(id: ID!, predictedClass: String!, industrialProb: Float!, persistenceScore: Float!, distIndustrialM: Float!, insideIndustrial: Boolean!, landcover: Int!, clusterId: ID): Boolean!
+  # classifies a raw point via the Python sidecar (ai gRPC -> Python /firms/predict).
+  # Does not persist - call updateFirmsPointClassification with the result to store it.
+  classifyFirmsPoint(input: ClassifyFirmsPointInput!): FirmsClassification!
+  # triggers a FIRMS CSV pull for a bbox/date range (ai gRPC -> Python /firms/ingest); currently a stub without FIRMS_MAP_KEY
+  ingestFirms(bbox: BoundingBox!, dateFrom: String!, dateTo: String!): Boolean!
 }
 
 type Subscription {

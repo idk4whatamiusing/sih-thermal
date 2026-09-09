@@ -4,6 +4,7 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -177,6 +178,67 @@ func (r *mutationResolver) UpdateFirmsPointClassification(ctx context.Context, i
 		DistIndustrialM: distIndustrialM, InsideIndustrial: insideIndustrial, Landcover: int32(landcover), ClusterId: cid,
 	})
 	return err == nil, err
+}
+
+func (r *mutationResolver) ClassifyFirmsPoint(ctx context.Context, input app.ClassifyFirmsPointInput) (*app.FirmsClassification, error) {
+	user := oauth.UserID(ctx)
+	if user == "" {
+		return nil, errUnauthorized
+	}
+	req := &aipb.ClassifyFirmsPointRequest{Lat: input.Lat, Lon: input.Lon}
+	if input.Frp != nil {
+		req.Frp = *input.Frp
+	}
+	if input.BrightTi4 != nil {
+		req.BrightTi4 = *input.BrightTi4
+	}
+	if input.BrightTi5 != nil {
+		req.BrightTi5 = *input.BrightTi5
+	}
+	if input.Confidence != nil {
+		req.Confidence = *input.Confidence
+	}
+	if input.Satellite != nil {
+		req.Satellite = *input.Satellite
+	}
+	if input.DistIndustrialM != nil {
+		req.DistIndustrialM = *input.DistIndustrialM
+	}
+	if input.InsideIndustrial != nil {
+		req.InsideIndustrial = *input.InsideIndustrial
+	}
+	if input.Persistence != nil {
+		req.Persistence = *input.Persistence
+	}
+	if input.Landcover != nil {
+		req.Landcover = int32(*input.Landcover)
+	}
+	rep, err := r.Clients.Ai.ClassifyFirmsPoint(r.Clients.Ctx(ctx), req)
+	if err != nil {
+		return nil, err
+	}
+	return &app.FirmsClassification{
+		PredictedClass: rep.PredictedClass, IndustrialProb: rep.IndustrialProb,
+		Persistence: rep.Persistence, Reasons: rep.Reasons,
+	}, nil
+}
+
+func (r *mutationResolver) IngestFirms(ctx context.Context, bbox app.BoundingBox, dateFrom string, dateTo string) (bool, error) {
+	user := oauth.UserID(ctx)
+	if user == "" {
+		return false, errUnauthorized
+	}
+	rep, err := r.Clients.Ai.IngestFirms(r.Clients.Ctx(ctx), &aipb.IngestFirmsRequest{
+		MinLat: bbox.MinLat, MinLon: bbox.MinLon, MaxLat: bbox.MaxLat, MaxLon: bbox.MaxLon,
+		DateFrom: dateFrom, DateTo: dateTo,
+	})
+	if err != nil {
+		return false, err
+	}
+	if !rep.Ok {
+		return false, errors.New(rep.Error)
+	}
+	return true, nil
 }
 
 // ---- queries ----

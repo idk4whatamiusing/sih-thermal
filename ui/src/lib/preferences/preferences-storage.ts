@@ -1,7 +1,5 @@
 "use client";
 
-import { setValueToCookie } from "@/server/server-actions";
-
 import { setClientCookie } from "../cookie.client";
 import { setLocalStorageValue } from "../local-storage.client";
 import {
@@ -11,17 +9,18 @@ import {
   type PreferenceValueMap,
 } from "./preferences-config";
 
+// This app is deployed as a static export (Cloudflare Worker serving static
+// files + proxying /api/*, no live Next.js server) - Server Actions can
+// never run in production here, so "server-cookie" just uses the same
+// client-side cookie write as "client-cookie" rather than depending on one.
 async function persistByMode(mode: PreferencePersistence, key: string, value: string): Promise<void> {
   switch (mode) {
     case "none":
       return;
 
     case "client-cookie":
-      setClientCookie(key, value);
-      return;
-
     case "server-cookie":
-      await setValueToCookie(key, value);
+      setClientCookie(key, value);
       return;
 
     case "localStorage":

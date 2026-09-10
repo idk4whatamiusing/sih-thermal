@@ -41,7 +41,7 @@ WORLD_TILES = [
 # pull is 200k+ points/day and must only run with RDS + retention in place.
 PILOT_BBOX = {"minLat": 22.0, "minLon": 69.5, "maxLat": 23.0, "maxLon": 70.5}
 
-WINDOW_DAYS = 10  # must stay <= FIRMS_MAX_DAY_RANGE in ai/python/app.py
+WINDOW_DAYS = 5  # must stay <= FIRMS_MAX_DAY_RANGE in ai/python/app.py (API rejects [6..])
 
 MUTATION = """
 mutation Ingest($bbox: BoundingBox!, $from: String!, $to: String!, $source: String) {

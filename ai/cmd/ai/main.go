@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -227,7 +228,7 @@ func (s *server) Predict(ctx context.Context, req *aipb.PredictRequest) (*aipb.P
 // db.NearestIndustrialSite when the caller didn't supply them, then calls
 // the Python classifier. Shared by ClassifyFirmsPoint and the IngestFirms
 // pipeline so both go through the same enrichment path.
-func (s *server) classifyEnrich(ctx context.Context, preq firms.PredictRequest) (firms.PredictReply, error) {
+func (s *server) classifyEnrich(ctx context.Context, preq *firms.PredictRequest) (firms.PredictReply, error) {
 	if preq.DistIndustrialM == nil || preq.InsideIndustrial == nil {
 		nctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
 		nrep, err := s.db.NearestIndustrialSite(nctx, &dbpb.NearestIndustrialSiteRequest{Lat: preq.Lat, Lon: preq.Lon})
@@ -238,7 +239,7 @@ func (s *server) classifyEnrich(ctx context.Context, preq firms.PredictRequest) 
 			preq.DistIndustrialM, preq.InsideIndustrial = &d, &in
 		}
 	}
-	return s.firms.Predict(preq)
+	return s.firms.Predict(*preq)
 }
 
 func (s *server) ClassifyFirmsPoint(ctx context.Context, req *aipb.ClassifyFirmsPointRequest) (*aipb.ClassifyFirmsPointReply, error) {
@@ -269,7 +270,7 @@ func (s *server) ClassifyFirmsPoint(ctx context.Context, req *aipb.ClassifyFirms
 	}
 	preq.Landcover = req.Landcover
 
-	rep, err := s.classifyEnrich(ctx, preq)
+	rep, err := s.classifyEnrich(ctx, &preq)
 	if err != nil {
 		return nil, err
 	}
@@ -337,6 +338,21 @@ func normalizeFirmsTime(raw string) string {
 	return raw[:2] + ":" + raw[2:] + ":00"
 }
 
+// persistedFirmsPoint carries everything needed both to have written a
+// FirmsPoint row and, later, to fold it into a thermal cluster + patch its
+// cluster_id back in - so the training pipeline (Phase 2c) has something to
+// join against instead of every ingested point sitting unclustered forever.
+type persistedFirmsPoint struct {
+	id                               string
+	lat, lon, frp                    float64
+	acqDate                          string
+	predictedClass                   string
+	industrialProb, persistenceScore float64
+	distIndustrialM                  float64
+	insideIndustrial                 bool
+	landcover                        int32
+}
+
 func (s *server) IngestFirms(ctx context.Context, req *aipb.IngestFirmsRequest) (*aipb.IngestFirmsReply, error) {
 	rep, err := s.firms.Ingest(firms.IngestRequest{
 		MinLat: req.GetMinLat(), MinLon: req.GetMinLon(), MaxLat: req.GetMaxLat(), MaxLon: req.GetMaxLon(),
@@ -350,9 +366,9 @@ func (s *server) IngestFirms(ctx context.Context, req *aipb.IngestFirmsRequest) 
 	}
 
 	dctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
-	written := 0
+	var persisted []persistedFirmsPoint
 	for _, p := range rep.Points {
-		preq := firms.PredictRequest{
+		preq := &firms.PredictRequest{
 			Lat: p.Lat, Lon: p.Lon, Frp: p.Frp, BrightTi4: p.BrightTi4, BrightTi5: p.BrightTi5,
 			Confidence: p.Confidence, Satellite: p.Satellite,
 		}
@@ -370,11 +386,28 @@ func (s *server) IngestFirms(ctx context.Context, req *aipb.IngestFirmsRequest) 
 		if p.Confidence != nil {
 			confidence = *p.Confidence
 		}
+		pp := persistedFirmsPoint{
+			id: firmsPointID(satellite, p.AcqDate, p.AcqTime, p.Lat, p.Lon), lat: p.Lat, lon: p.Lon, acqDate: p.AcqDate,
+			predictedClass: crep.PredictedClass, industrialProb: crep.IndustrialProb, persistenceScore: crep.Persistence,
+		}
+		if preq.DistIndustrialM != nil {
+			pp.distIndustrialM = *preq.DistIndustrialM
+		}
+		if preq.InsideIndustrial != nil {
+			pp.insideIndustrial = *preq.InsideIndustrial
+		}
+		if crep.Landcover != nil {
+			pp.landcover = *crep.Landcover
+		}
+		if p.Frp != nil {
+			pp.frp = *p.Frp
+		}
+
 		pb := &dbpb.FirmsPoint{
-			Id:       firmsPointID(satellite, p.AcqDate, p.AcqTime, p.Lat, p.Lon),
-			Latitude: p.Lat, Longitude: p.Lon, AcqDate: p.AcqDate, AcqTime: normalizeFirmsTime(p.AcqTime),
+			Id: pp.id, Latitude: p.Lat, Longitude: p.Lon, AcqDate: p.AcqDate, AcqTime: normalizeFirmsTime(p.AcqTime),
 			Confidence: confidence, Satellite: satellite,
-			PredictedClass: crep.PredictedClass, IndustrialProb: crep.IndustrialProb, PersistenceScore: crep.Persistence,
+			PredictedClass: pp.predictedClass, IndustrialProb: pp.industrialProb, PersistenceScore: pp.persistenceScore,
+			DistIndustrialM: pp.distIndustrialM, InsideIndustrial: pp.insideIndustrial, Landcover: pp.landcover,
 		}
 		if p.BrightTi4 != nil {
 			pb.BrightTi4 = *p.BrightTi4
@@ -391,17 +424,113 @@ func (s *server) IngestFirms(ctx context.Context, req *aipb.IngestFirmsRequest) 
 		if p.Track != nil {
 			pb.Track = *p.Track
 		}
-		if crep.Landcover != nil {
-			pb.Landcover = *crep.Landcover
-		}
 
 		if _, err := s.db.UpsertFirmsPoint(dctx, &dbpb.UpsertFirmsPointRequest{Point: pb}); err != nil {
 			log.Printf("ingest: upsert (%f,%f): %v", p.Lat, p.Lon, err)
 			continue
 		}
-		written++
+		persisted = append(persisted, pp)
 	}
-	return &aipb.IngestFirmsReply{Ok: true, PointsIngested: int32(written)}, nil
+
+	if len(persisted) > 0 {
+		s.clusterAndTag(dctx, persisted)
+	}
+	return &aipb.IngestFirmsReply{Ok: true, PointsIngested: int32(len(persisted))}, nil
+}
+
+// clusterAndTag groups this ingestion batch's persisted points via the
+// Python DBSCAN-ish clusterer, upserts a thermal_clusters row per group, and
+// patches each member firms_point's cluster_id - this is what actually
+// makes the Phase 2c training pipeline able to find sequence data (see
+// issue #7: previously nothing called ClusterFirmsPoints during ingest, so
+// firms_points.cluster_id was always null). Best-effort: logs and moves on
+// on any single failure rather than aborting the whole ingest.
+func (s *server) clusterAndTag(ctx context.Context, persisted []persistedFirmsPoint) {
+	byKey := make(map[string]*persistedFirmsPoint, len(persisted))
+	pts := make([]firms.ClusterPoint, len(persisted))
+	for i := range persisted {
+		p := &persisted[i]
+		key := fmt.Sprintf("%.6f,%.6f", p.lat, p.lon)
+		byKey[key] = p
+		frp := p.frp
+		pts[i] = firms.ClusterPoint{Lat: p.lat, Lon: p.lon, Frp: &frp}
+	}
+	crep, err := s.firms.Cluster(firms.ClusterRequest{Points: pts, EpsM: 1000, MinSamples: 2, WindowDays: 30})
+	if err != nil {
+		log.Printf("ingest: cluster: %v", err)
+		return
+	}
+
+	groups := make(map[int][]*persistedFirmsPoint)
+	for _, c := range crep.Clusters {
+		if c.Cluster < 0 {
+			continue // noise / unclustered
+		}
+		key := fmt.Sprintf("%.6f,%.6f", c.Lat, c.Lon)
+		if p, ok := byKey[key]; ok {
+			groups[c.Cluster] = append(groups[c.Cluster], p)
+		}
+	}
+
+	for _, members := range groups {
+		if len(members) == 0 {
+			continue
+		}
+		var sumLat, sumLon, sumFrp, maxFrp float64
+		classVotes := map[string]int{}
+		minDate, maxDate := members[0].acqDate, members[0].acqDate
+		ids := make([]string, len(members))
+		for i, m := range members {
+			sumLat += m.lat
+			sumLon += m.lon
+			sumFrp += m.frp
+			if m.frp > maxFrp {
+				maxFrp = m.frp
+			}
+			classVotes[m.predictedClass]++
+			if m.acqDate < minDate {
+				minDate = m.acqDate
+			}
+			if m.acqDate > maxDate {
+				maxDate = m.acqDate
+			}
+			ids[i] = m.id
+		}
+		n := float64(len(members))
+		majorityClass, majorityCount := "", 0
+		for class, count := range classVotes {
+			if count > majorityCount {
+				majorityClass, majorityCount = class, count
+			}
+		}
+		clusterID := thermalClusterID(ids)
+
+		_, err := s.db.UpsertThermalCluster(ctx, &dbpb.UpsertThermalClusterRequest{Cluster: &dbpb.ThermalCluster{
+			Id: clusterID, CentroidLat: sumLat / n, CentroidLon: sumLon / n, Count: int32(len(members)),
+			AvgFrp: sumFrp / n, MaxFrp: maxFrp, FirstSeen: minDate, LastSeen: maxDate, PredictedClass: majorityClass,
+		}})
+		if err != nil {
+			log.Printf("ingest: upsert thermal cluster: %v", err)
+			continue
+		}
+		for _, m := range members {
+			if _, err := s.db.UpdateFirmsPointClassification(ctx, &dbpb.UpdateFirmsPointClassificationRequest{
+				Id: m.id, PredictedClass: m.predictedClass, IndustrialProb: m.industrialProb, PersistenceScore: m.persistenceScore,
+				DistIndustrialM: m.distIndustrialM, InsideIndustrial: m.insideIndustrial, Landcover: m.landcover, ClusterId: clusterID,
+			}); err != nil {
+				log.Printf("ingest: tag cluster_id on point %s: %v", m.id, err)
+			}
+		}
+	}
+}
+
+// thermalClusterID derives a stable id from the member point ids so
+// re-ingesting the same bbox/date range (same points, same ids) upserts the
+// same cluster instead of creating a duplicate every run.
+func thermalClusterID(memberIDs []string) string {
+	sorted := append([]string(nil), memberIDs...)
+	sort.Strings(sorted)
+	return uuid.NewSHA1(firmsPointNamespace, []byte(strings.Join(sorted, "|"))).String()
 }
 
 // ---- small helpers ----

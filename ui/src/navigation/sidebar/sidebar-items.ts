@@ -1,4 +1,4 @@
-import { Activity, Flame, type LucideIcon, Map } from "lucide-react";
+import { Flame, type LucideIcon } from "lucide-react";
 
 export type NavBadge = "new" | "soon";
 
@@ -48,18 +48,6 @@ export const sidebarItems: NavGroup[] = [
         title: "Thermal Map",
         url: "/dashboard/default",
         icon: Flame,
-      },
-      {
-        id: "incidents",
-        title: "Incidents",
-        url: "/dashboard/incidents",
-        icon: Map,
-      },
-      {
-        id: "predict",
-        title: "AI Predict",
-        url: "/dashboard/predict",
-        icon: Activity,
       },
     ],
   },

@@ -1,6 +1,6 @@
 # PostGIS + pgvector combined for SIH PS162 GIS
 # Base = postgis (has postgis 3.4), then install pgvector
 FROM postgis/postgis:16-3.4
-RUN apt-get update && \
+RUN apt-get -o Acquire::Check-Valid-Until=false update && \
     apt-get install -y --no-install-recommends postgresql-16-pgvector && \
     rm -rf /var/lib/apt/lists/*

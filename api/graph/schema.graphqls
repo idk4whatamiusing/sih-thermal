@@ -153,7 +153,8 @@ type Mutation {
   classifyFirmsPoint(input: ClassifyFirmsPointInput!): FirmsClassification!
   # triggers a FIRMS CSV pull for a bbox/date range (ai gRPC -> Python /firms/ingest); currently a stub without FIRMS_MAP_KEY
   # returns the number of points fetched/enriched/classified/persisted
-  ingestFirms(bbox: BoundingBox!, dateFrom: String!, dateTo: String!): Int!
+  # source: FIRMS product (VIIRS_SNPP_NRT default | VIIRS_NOAA20_NRT | VIIRS_NOAA21_NRT | MODIS_NRT), "" = default
+  ingestFirms(bbox: BoundingBox!, dateFrom: String!, dateTo: String!, source: String): Int!
 }
 
 type Subscription {

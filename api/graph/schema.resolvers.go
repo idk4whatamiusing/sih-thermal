@@ -229,14 +229,18 @@ func (r *mutationResolver) ClassifyFirmsPoint(ctx context.Context, input app.Cla
 	}, nil
 }
 
-func (r *mutationResolver) IngestFirms(ctx context.Context, bbox app.BoundingBox, dateFrom string, dateTo string) (int, error) {
+func (r *mutationResolver) IngestFirms(ctx context.Context, bbox app.BoundingBox, dateFrom string, dateTo string, source *string) (int, error) {
 	user := oauth.UserID(ctx)
 	if user == "" {
 		return 0, errUnauthorized
 	}
+	src := ""
+	if source != nil {
+		src = *source
+	}
 	rep, err := r.Clients.Ai.IngestFirms(r.Clients.Ctx(ctx), &aipb.IngestFirmsRequest{
 		MinLat: bbox.MinLat, MinLon: bbox.MinLon, MaxLat: bbox.MaxLat, MaxLon: bbox.MaxLon,
-		DateFrom: dateFrom, DateTo: dateTo,
+		DateFrom: dateFrom, DateTo: dateTo, Source: src,
 	})
 	if err != nil {
 		return 0, err

@@ -423,7 +423,7 @@ type persistedFirmsPoint struct {
 func (s *server) IngestFirms(ctx context.Context, req *aipb.IngestFirmsRequest) (*aipb.IngestFirmsReply, error) {
 	rep, err := s.firms.Ingest(firms.IngestRequest{
 		MinLat: req.GetMinLat(), MinLon: req.GetMinLon(), MaxLat: req.GetMaxLat(), MaxLon: req.GetMaxLon(),
-		DateFrom: req.GetDateFrom(), DateTo: req.GetDateTo(),
+		DateFrom: req.GetDateFrom(), DateTo: req.GetDateTo(), Source: req.GetSource(),
 	})
 	if err != nil {
 		return nil, err

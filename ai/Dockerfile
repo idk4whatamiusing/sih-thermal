@@ -34,7 +34,8 @@ COPY ai/python/requirements.txt python/
 # sentence-transformers is resolved, so nothing pulls the CUDA variant in.
 RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch && \
     pip install --no-cache-dir -r python/requirements.txt
-COPY ai/python/app.py ai/python/embeddings.py ai/python/gdelt.py ai/python/landcover.py python/
+COPY ai/python/app.py ai/python/embeddings.py ai/python/gdelt.py ai/python/landcover.py ai/python/onnx_infer.py python/
+COPY ai/models/ models/
 
 # start.sh: rag sidecar (:8003) first, then the Go gRPC server (:8002)
 RUN printf '#!/bin/sh\nset -e\nuvicorn app:app --app-dir python --host 127.0.0.1 --port 8003 &\nexec ai\n' > start.sh && chmod +x start.sh

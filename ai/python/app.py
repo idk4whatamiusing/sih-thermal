@@ -31,6 +31,7 @@ from pydantic import BaseModel
 import embeddings
 import gdelt
 import landcover
+import onnx_infer
 
 app = FastAPI(title="ai-rag-ps162", version="0.3.0")
 
@@ -191,6 +192,24 @@ async def firms_predict(req: FirmsPredictRequest):
             reasons.append("landcover=forest")
     # clamp
     score = max(0.0, min(1.0, score))
+    # ONNX primary (issue #21): real trained model wins when USE_ONNX=1 and a
+    # checkpoint exists; heuristic above stays as fallback AND as explainability
+    # context in reasons. Degenerate single-point sequence until the
+    # cluster-level reclassification pass lands (see onnx_infer docstring).
+    if onnx_infer.use_onnx():
+        clf = onnx_infer.OnnxClassifier.get()
+        if clf is not None:
+            try:
+                oclass, oprob = clf.predict_point(
+                    frp=req.frp, bright_ti4=req.bright_ti4, bright_ti5=req.bright_ti5,
+                    dist_industrial_m=req.dist_industrial_m,
+                    inside_industrial=bool(req.inside_industrial), persistence=pers,
+                )
+                reasons.append(f"onnx={oclass}/{oprob:.2f}")
+                return FirmsPredictReply(predicted_class=oclass, industrial_prob=oprob,
+                                          persistence=pers, reasons=reasons, landcover=req.landcover)
+            except Exception:
+                reasons.append("onnx-error-heuristic-fallback")
     # threshold 0.45 -> industrial (tuned to keep precision high)
     if score >= 0.45:
         # split industrial subtypes: flare if high temp

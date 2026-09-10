@@ -104,6 +104,9 @@ services:
       SUPPORT_LLM_URL: http://support-llm:8080/v1
       RAG_URL: http://localhost:8003
       FIRMS_MAP_KEY: ${FIRMS_MAP_KEY} # NASA FIRMS API key (sidecar /firms/ingest); missing = ingest refuses with a clear error
+      # v1 real model (59 samples, train-set ind P/R 0.75/0.60 vs heuristic 0.00/0.00):
+      # ONNX primary, heuristic fallback when the checkpoint is absent.
+      USE_ONNX: "1"
     depends_on:
       postgres:
         condition: service_healthy

@@ -51,6 +51,21 @@ async def main() -> int:
     import gdelt
 
     conn = await asyncpg.connect(args.database_url)
+
+    async def ensure_conn():
+        """CD restarts (postgres recreate) drop long-lived connections; the
+        run is idempotent (labeled clusters are skipped) so reconnecting and
+        continuing is always safe."""
+        nonlocal conn
+        try:
+            await conn.fetchval("SELECT 1")
+        except Exception:  # noqa: BLE001 - any transport failure -> fresh connection
+            try:
+                await conn.close()
+            except Exception:  # noqa: BLE001
+                pass
+            conn = await asyncpg.connect(args.database_url)
+
     try:
         clusters = await conn.fetch(
             """
@@ -67,6 +82,7 @@ async def main() -> int:
         print(f"found {len(clusters)} thermal clusters in bbox")
         labeled, skipped, no_match = 0, 0, 0
         for c in clusters:
+            await ensure_conn()
             n = await conn.fetchval(
                 "SELECT count(*) FROM label_events WHERE cluster_id = $1 AND source = 'gdelt'",
                 c["id"],

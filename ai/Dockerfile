@@ -13,7 +13,7 @@ WORKDIR /app
 COPY --from=gobuild /out/ai /usr/local/bin/ai
 COPY ai/python/requirements.txt python/
 RUN pip install --no-cache-dir -r python/requirements.txt
-COPY ai/python/app.py python/
+COPY ai/python/app.py ai/python/embeddings.py ai/python/gdelt.py ai/python/landcover.py python/
 
 # start.sh: rag sidecar (:8003) first, then the Go gRPC server (:8002)
 RUN printf '#!/bin/sh\nset -e\nuvicorn app:app --app-dir python --host 127.0.0.1 --port 8003 &\nexec ai\n' > start.sh && chmod +x start.sh

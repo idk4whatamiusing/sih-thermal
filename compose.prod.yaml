@@ -103,6 +103,7 @@ services:
       OPENAI_BASE_URL: ${OPENAI_BASE_URL}
       SUPPORT_LLM_URL: http://support-llm:8080/v1
       RAG_URL: http://localhost:8003
+      FIRMS_MAP_KEY: ${FIRMS_MAP_KEY} # NASA FIRMS API key (sidecar /firms/ingest); missing = ingest refuses with a clear error
     depends_on:
       postgres:
         condition: service_healthy

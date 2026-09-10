@@ -30,7 +30,10 @@ from pydantic import BaseModel
 
 import embeddings
 import gdelt
-import landcover
+try:
+    import landcover
+except ImportError:  # e.g. rasterio system lib missing: degrade, don't kill /firms/* + /embed
+    landcover = None  # type: ignore[assignment]
 import onnx_infer
 
 app = FastAPI(title="ai-rag-ps162", version="0.3.0")
@@ -150,7 +153,7 @@ async def firms_predict(req: FirmsPredictRequest):
     # landcover enrichment: if the caller didn't supply it, sample it
     # ourselves from ESA WorldCover (remote COG partial read, no full
     # tile download). Best-effort - leave it unset on any failure.
-    if req.landcover is None:
+    if req.landcover is None and landcover is not None:
         try:
             req.landcover = landcover.sample_landcover(req.lat, req.lon)
         except Exception:

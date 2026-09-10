@@ -19,7 +19,9 @@ WORKDIR /build/ai
 RUN CGO_ENABLED=0 go build -o /out/ai ./cmd/ai
 
 FROM python:3.12-slim
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+# libexpat1: rasterio (landcover.py) needs it at import; without it the whole
+# sidecar dies on boot (seen live: libexpat.so.1 missing -> all /firms/* + /embed down).
+RUN apt-get update && apt-get install -y --no-install-recommends curl libexpat1 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=gobuild /out/ai /usr/local/bin/ai
 COPY ai/python/requirements.txt python/

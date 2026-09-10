@@ -1,10 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThermalMap } from "../_components/thermal-map";
-import { createClient } from "@/lib/gqlClient";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Link from "next/link";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { ThermalMap } from "../_components/thermal-map";
 
 export default function Page() {
   return (
@@ -12,7 +10,9 @@ export default function Page() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Thermal Intelligence — PS162</h1>
-          <p className="text-sm text-muted-foreground">Industrial fires vs forest/agri via FIRMS + OSM + persistence scoring</p>
+          <p className="text-sm text-muted-foreground">
+            Industrial fires vs. forest/agriculture via NASA FIRMS + OSM industrial sites + landcover + a trained classifier
+          </p>
         </div>
         <div className="hidden text-xs text-muted-foreground md:block">NTRO • SIH26162 • FIRMS VIIRS 375m • OSM</div>
       </div>
@@ -20,28 +20,25 @@ export default function Page() {
       <Card>
         <CardHeader>
           <CardTitle>FIRMS VIIRS NRT — Thermal Overlay</CardTitle>
-          <CardDescription>Demo points: Jamnagar flare (industrial 0.92) vs forest (0.08) — MapLibre GL + persistence</CardDescription>
+          <CardDescription>Live detections for the current map view, classified and colored by predicted class. Pan/zoom to refetch.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <ThermalMap />
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Filters (next)</CardTitle>
+            <CardTitle className="text-sm">Incidents</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Date range • bbox draw • class • persistence threshold — GraphQL firmsPoints query wired after AI predict lands.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Stats</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Demo — Jamnagar persistence 0.92 vs forest 0.08 (DBSCAN 30d window).</p>
+            <p className="text-sm text-muted-foreground">
+              Persistent thermal clusters (DBSCAN over recurring detections) with their heuristic + AI-arbitrated classification.
+            </p>
+            <Link href="/dashboard/incidents" className="mt-2 inline-block text-sm text-primary underline underline-offset-4">
+              View incidents →
+            </Link>
           </CardContent>
         </Card>
         <Card>
@@ -49,19 +46,15 @@ export default function Page() {
             <CardTitle className="text-sm">AI Predict</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">POST /firms/predict (Python) → XGBoost industrial_prob + OSM join — coming iteration 2.</p>
+            <p className="text-sm text-muted-foreground">
+              Classify a point manually - runs the same heuristic + PostGIS/landcover enrichment + RAG similar-case lookup the ingestion pipeline uses.
+            </p>
+            <Link href="/dashboard/predict" className="mt-2 inline-block text-sm text-primary underline underline-offset-4">
+              Try it →
+            </Link>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Live thermal alerts (realtime Gleam SSE)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground">waiting for broadcasts… (api: broadcast → hub → realtime)</p>
-        </CardContent>
-      </Card>
     </div>
   );
 }

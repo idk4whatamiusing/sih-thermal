@@ -38,9 +38,8 @@ export default function Home() {
               <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#84907f]">The trails of PS162</div>
               <nav className="mt-8 space-y-3 font-mono text-[11px] uppercase tracking-wide">
                 <Link href="/" className="flex items-center gap-2 text-[#2d3329]">● Map</Link>
-                <Link href="/dashboard" className="flex items-center gap-2 text-[#84907f] hover:text-[#2d3329]">◆ Dashboard</Link>
-                <Link href="/dashboard/map" className="flex items-center gap-2 text-[#84907f] hover:text-[#2d3329]">◇ Thermal</Link>
-                <Link href="https://sih-thermal-gateway.dsjzcjmsh6.workers.dev/api/auth/google" className="flex items-center gap-2 text-[#84907f] hover:text-[#2d3329]">↗ Google</Link>
+                <Link href="/dashboard/default" className="flex items-center gap-2 text-[#84907f] hover:text-[#2d3329]">◆ Dashboard</Link>
+                <a href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/auth/google`} className="flex items-center gap-2 text-[#84907f] hover:text-[#2d3329]">↗ Google</a>
               </nav>
               <div className="mt-12 flex gap-4 font-mono text-[10px] uppercase tracking-wide text-[#84907f]">
                 <span className="flex items-center gap-1.5"><span className="h-[2px] w-8 bg-[#2d3329]" /> perimeter</span>
@@ -52,8 +51,8 @@ export default function Home() {
               </div>
             </div>
             <div className="font-mono text-[10px] uppercase tracking-wide text-[#84907f]">
-              <div>EN / FR</div>
-              <div className="mt-2 text-[9px] leading-none">EST.2025 — 16.113.35.234.sslip.io</div>
+              <div>Team Meridian</div>
+              <div className="mt-2 text-[9px] leading-none">SIH2026 — SIH26162</div>
             </div>
           </aside>
 
@@ -87,7 +86,7 @@ export default function Home() {
                 AI-Based Detection and Classification of Industrial Fires and Persistent Thermal Sources Using NASA FIRMS, OSM & Satellite Data — <span className="bg-[#e2ffcc] px-1">PS162</span>
               </p>
               <div className="mt-8 flex justify-center gap-3 font-mono text-[11px] uppercase tracking-wide">
-                <Link href="/dashboard" className="rounded-full bg-[#2d3329] px-6 py-3 text-[#dde2e4] hover:bg-[#161b13]">Enter Dashboard — Map</Link>
+                <Link href="/dashboard/default" className="rounded-full bg-[#2d3329] px-6 py-3 text-[#dde2e4] hover:bg-[#161b13]">Enter Dashboard — Map</Link>
                 <Link href="#latest" className="rounded-full border border-[#2d3329] px-6 py-3 text-[#2d3329] hover:bg-[#2d3329] hover:text-[#dde2e4]">View Latest Incident</Link>
               </div>
               <div className="mt-6 font-mono text-[10px] uppercase tracking-wide text-[#84907f]">Scroll to enter our world ↓</div>
@@ -97,11 +96,17 @@ export default function Home() {
             <div className="pointer-events-none absolute left-[50%] top-[72%] z-0 hidden md:block">
               <div className="relative h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px] -translate-x-1/2 -translate-y-1/2">
                 <div
-                  className="absolute inset-0 overflow-hidden rounded-full border border-[#2d3329]/20 bg-[#e2ffcc] shadow-xl transition-all duration-500"
+                  className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full border border-[#2d3329]/20 bg-[#e2ffcc] shadow-xl transition-all duration-500"
                   style={{ maskImage: "radial-gradient(farthest-side, #000 68%, transparent 100%)", WebkitMaskImage: "radial-gradient(farthest-side, #000 68%, transparent 100%)" } as React.CSSProperties}
                 >
-                  <img src="https://www.datocms-assets.com/116050/1770712969-river.webp" alt="hotspot" className="h-full w-full object-cover" />
-                  <div className="absolute bottom-2 left-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-white">Jamnagar 22.47°N 70.06°E • FRP 45 • 0.92 persistence</div>
+                  <img
+                    src="/media/terrain/topology.svg"
+                    alt="thermal detection example"
+                    className="h-full w-full object-cover opacity-70 mix-blend-multiply"
+                  />
+                  <div className="absolute bottom-2 left-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-white">
+                    example: FRP 45 · persistence 0.92
+                  </div>
                 </div>
                 <div className="absolute -right-2 -top-2 rounded-full bg-[#e91200] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wide text-white">HOT</div>
               </div>
@@ -111,33 +116,30 @@ export default function Home() {
             <div className="pointer-events-none absolute bottom-0 h-32 w-full bg-gradient-to-t from-[#dde2e4] to-transparent" />
           </div>
 
-          {/* Right Rail - Latest Incident ala Podium Global */}
+          {/* Right Rail - How it works */}
           <aside id="latest" className="sticky top-0 hidden h-dvh flex-col border-l border-[#2d3329]/10 bg-[#dde2e4] md:flex">
             <div className="p-6">
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#84907f]">Latest hot spot added</div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#84907f]">How it works</div>
               <h3 className="mt-2 font-black uppercase leading-none tracking-tight text-[#2d3329]" style={{ fontFamily: "var(--font-display)" } as React.CSSProperties}>
-                Sector B —<br />Persist. Thermal
+                Ingest —<br />Enrich — Classify
               </h3>
-              <div className="mt-2 font-mono text-[11px] uppercase tracking-wide text-[#84907f]">Refinery flare • Jamnagar • FIRMS VIIRS</div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <img src="https://www.datocms-assets.com/116050/1769197477-podium-cover-1.webp" alt="cover1" className="aspect-[4/3] w-full object-cover" />
-                <img src="https://www.datocms-assets.com/116050/1779374757-1775438346-auclair-3-1.png" alt="cover2" className="aspect-[4/3] w-full object-cover" />
-              </div>
-              <div className="mt-3 flex items-center justify-between font-mono text-[11px] uppercase tracking-wide">
-                <span className="text-[#84907f]">Industrial • 0.85 prob</span>
-                <Link href="/dashboard" className="underline decoration-[#2d3329] underline-offset-4 hover:bg-[#e2ffcc]">Explore Incident ↗</Link>
-              </div>
-              <div className="mt-6 border-t border-[#2d3329]/10 pt-4 font-mono text-[10px] uppercase leading-relaxed tracking-wide text-[#84907f]">
-                <div>— Terraforming activated</div>
-                <div className="text-[#2d3329]">Sensor sweep • GIS base • Evac trails • Drone overwatch • Incident log</div>
+              <ol className="mt-4 space-y-3 font-mono text-[11px] uppercase tracking-wide text-[#2d3329]/80">
+                <li><span className="text-[#84907f]">01</span> Pull FIRMS VIIRS thermal detections</li>
+                <li><span className="text-[#84907f]">02</span> Enrich with OSM industrial-site distance + ESA WorldCover landcover</li>
+                <li><span className="text-[#84907f]">03</span> Cluster recurring detections, classify industrial vs. natural</li>
+                <li><span className="text-[#84907f]">04</span> Ambiguous cases get an AI second opinion, RAG-augmented with similar past cases</li>
+              </ol>
+              <div className="mt-6 flex items-center justify-between font-mono text-[11px] uppercase tracking-wide">
+                <span className="text-[#84907f]">See it on real data</span>
+                <Link href="/dashboard/incidents" className="underline decoration-[#2d3329] underline-offset-4 hover:bg-[#e2ffcc]">View Incidents ↗</Link>
               </div>
             </div>
             <div className="mt-auto border-t border-[#2d3329]/10 p-6 font-mono text-[10px] uppercase tracking-wide">
               <div className="flex gap-4 text-[#84907f]">
-                <span>↓ 16.113.35.234.sslip.io</span>
+                <span>Team Meridian</span>
                 <span className="ml-auto">EN</span>
               </div>
-              <div className="mt-4 text-[9px] leading-relaxed text-[#84907f]">© Atelier PS162 Inc. — Inspired by San Rita terrain (direct assets under public/media, renamed, internal)</div>
+              <div className="mt-4 text-[9px] leading-relaxed text-[#84907f]">© Team Meridian, Smart India Hackathon 2026 — PS162</div>
             </div>
           </aside>
         </div>
@@ -146,17 +148,16 @@ export default function Home() {
         <div className="border-t border-[#2d3329]/10 bg-[#2d3329] p-6 text-[#dde2e4] md:hidden">
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#84907f]">PS162 • FIRMS + OSM</div>
           <div className="mt-2 font-mono text-xs uppercase leading-relaxed tracking-wide">
-            Industrial fires vs forest/agri via persistence. <Link href="/dashboard" className="bg-[#e2ffcc] px-1 text-[#2d3329]">Open Map →</Link>
+            Industrial fires vs forest/agri via persistence. <Link href="/dashboard/default" className="bg-[#e2ffcc] px-1 text-[#2d3329]">Open Map →</Link>
           </div>
         </div>
 
-        {/* Footer marquee like San Rita */}
         <div className="hidden border-t border-[#2d3329]/10 bg-[#161b13] py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#84907f] md:block">
           <div className="mx-auto flex max-w-[1600px] justify-between px-10">
-            <span>Sensor & mapping Purveyors</span>
-            <span>hand-calibrated incident Refuge</span>
-            <span>Gold idEAs seekers</span>
-            <span>Republic of collaborative minds</span>
+            <span>NASA FIRMS VIIRS 375m</span>
+            <span>OpenStreetMap industrial sites</span>
+            <span>ESA WorldCover 10m landcover</span>
+            <span>Smart India Hackathon 2026 · PS162</span>
           </div>
         </div>
       </main>

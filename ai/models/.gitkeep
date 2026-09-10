@@ -1,0 +1,4 @@
+Reserved for the REAL trained checkpoint (train/train_transformer.py --out).
+Never commit synthetic smoke-test output here - smoke_test.py writes to
+train/scratch/ (gitignored) by design. Serving (onnx_infer.py) treats a
+missing file as "heuristic fallback", so an empty dir is a valid state.

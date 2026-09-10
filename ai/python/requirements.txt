@@ -2,6 +2,7 @@ fastapi
 uvicorn
 httpx
 numpy
+onnxruntime  # CPU inference for firms_classifier.onnx (issue #21); small wheel, no torch link
 asyncpg
 redis
 rasterio

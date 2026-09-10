@@ -22,7 +22,12 @@ import sys
 import uuid
 from datetime import date, timedelta
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ai", "python"))
+# Locate ai/python (gdelt.py): repo layout first, then container mount points.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+for _cand in (os.path.join(_HERE, "..", "ai", "python"), "/mnt/py", "/app/python"):
+    if os.path.exists(os.path.join(_cand, "gdelt.py")):
+        sys.path.insert(0, _cand)
+        break
 
 
 async def main() -> int:

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/lib/auth/AuthProvider";
 import { CLASSIFY_FIRMS_POINT, createClient, type FirmsClassification } from "@/lib/gqlClient";
 
 const api = createClient(process.env.NEXT_PUBLIC_API_URL ?? "");
@@ -20,7 +19,6 @@ const FIELDS = [
 ] as const;
 
 export default function PredictPage() {
-  const { user, loginHref } = useAuth();
   const [values, setValues] = useState<Record<string, string>>({ lat: "", lon: "", frp: "", brightTi4: "" });
   const [result, setResult] = useState<FirmsClassification | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -52,17 +50,6 @@ export default function PredictPage() {
         </p>
       </div>
 
-      {!user && (
-        <Card>
-          <CardContent className="flex items-center justify-between pt-6">
-            <p className="text-sm text-muted-foreground">Sign in to classify a point.</p>
-            <Button asChild size="sm">
-              <a href={loginHref}>Sign in with Google</a>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">Point</CardTitle>
@@ -83,7 +70,7 @@ export default function PredictPage() {
               </div>
             ))}
           </div>
-          <Button className="mt-4" onClick={classify} disabled={!user || status === "loading" || !values.lat || !values.lon}>
+          <Button className="mt-4" onClick={classify} disabled={status === "loading" || !values.lat || !values.lon}>
             {status === "loading" ? "Classifying…" : "Classify"}
           </Button>
           {status === "error" && <p className="mt-2 text-sm text-destructive">{error}</p>}

@@ -29,12 +29,17 @@ import urllib.request
 SENSORS = ("VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT", "MODIS_NRT")
 
 # World minus poles (FIRMS has no fire detections over ice sheets worth storing)
-TILES = [
+WORLD_TILES = [
     {"minLat": -60.0, "minLon": -180.0, "maxLat": 75.0, "maxLon": -90.0},
     {"minLat": -60.0, "minLon": -90.0, "maxLat": 75.0, "maxLon": 0.0},
     {"minLat": -60.0, "minLon": 0.0, "maxLat": 75.0, "maxLon": 90.0},
     {"minLat": -60.0, "minLon": 90.0, "maxLat": 75.0, "maxLon": 180.0},
 ]
+
+# Pilot default: Gujarat industrial belt (matches osmsync/gdeltsync defaults).
+# World backfill is an explicit opt-in (--tiles world) because a full world
+# pull is 200k+ points/day and must only run with RDS + retention in place.
+PILOT_BBOX = {"minLat": 22.0, "minLon": 69.5, "maxLat": 23.0, "maxLon": 70.5}
 
 WINDOW_DAYS = 10  # must stay <= FIRMS_MAX_DAY_RANGE in ai/python/app.py
 
@@ -99,7 +104,11 @@ def main() -> int:
     ap.add_argument("--email", default="backfill@operator.local")
     ap.add_argument("--from", dest="date_from", required=True)
     ap.add_argument("--to", dest="date_to", required=True)
-    ap.add_argument("--sensors", default=",".join(SENSORS))
+    ap.add_argument("--sensors", default="VIIRS_SNPP_NRT")
+    ap.add_argument("--tiles", default="pilot", choices=("pilot", "world"),
+                    help="pilot=Gujarat bbox (safe default), world=4 tiles (needs RDS+retention)")
+    ap.add_argument("--bbox", default="",
+                    help="override bbox as minLat,minLon,maxLat,maxLon (single tile)")
     ap.add_argument("--sleep", type=float, default=5.0, help="seconds between calls (FIRMS quota)")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
@@ -111,9 +120,20 @@ def main() -> int:
     if bad:
         print(f"unknown sensors: {bad} (want {SENSORS})", file=sys.stderr)
         return 1
+    if args.bbox:
+        try:
+            a, o, b, c = (float(x) for x in args.bbox.split(","))
+            tiles = [{"minLat": a, "minLon": o, "maxLat": b, "maxLon": c}]
+        except ValueError:
+            print("--bbox must be minLat,minLon,maxLat,maxLon", file=sys.stderr)
+            return 1
+    elif args.tiles == "world":
+        tiles = WORLD_TILES
+    else:
+        tiles = [PILOT_BBOX]
 
-    plan = [(s, b, w0, w1) for s in sensors for b in TILES for (w0, w1) in windows(date_from, date_to)]
-    print(f"{len(plan)} calls: {len(sensors)} sensors x {len(TILES)} tiles x {len(list(windows(date_from, date_to)))} windows")
+    plan = [(s, b, w0, w1) for s in sensors for b in tiles for (w0, w1) in windows(date_from, date_to)]
+    print(f"{len(plan)} calls: {len(sensors)} sensors x {len(tiles)} tiles x {len(list(windows(date_from, date_to)))} windows")
     if args.dry_run:
         for s, b, w0, w1 in plan[:5]:
             print(f"  DRY {s} {w0}..{w1} bbox={b}")

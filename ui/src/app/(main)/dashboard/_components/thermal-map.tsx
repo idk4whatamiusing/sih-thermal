@@ -6,6 +6,14 @@ import { createClient, FIRMS_POINTS_QUERY, type FirmsPoint } from "@/lib/gqlClie
 
 const api = createClient(process.env.NEXT_PUBLIC_API_URL ?? "");
 
+// NASA GIBS near-real-time imagery lags a couple of days behind "today" -
+// pin to 2 days back rather than "default", which 404s for this layer.
+function gibsDate(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 2);
+  return d.toISOString().slice(0, 10);
+}
+
 function toGeoJSON(points: FirmsPoint[]) {
   return {
     type: "FeatureCollection" as const,
@@ -34,7 +42,20 @@ export function ThermalMap() {
       try {
         map = new maplibre.Map({
           container: ref.current,
-          style: "https://demotiles.maplibre.org/style.json",
+          style: {
+            version: 8,
+            sources: {
+              basemap: {
+                type: "raster",
+                tiles: [
+                  `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/${gibsDate()}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
+                ],
+                tileSize: 256,
+                attribution: "Imagery © NASA EOSDIS GIBS",
+              },
+            },
+            layers: [{ id: "basemap", type: "raster", source: "basemap" }],
+          },
           center: [78.96, 20.59],
           zoom: 4,
         });
@@ -112,7 +133,7 @@ export function ThermalMap() {
   }, []);
 
   return (
-    <div className="relative h-[560px] w-full overflow-hidden rounded-xl border bg-card">
+    <div className="relative h-[calc(100dvh-8rem)] w-full overflow-hidden rounded-xl border bg-card">
       <div ref={ref} className="h-full w-full bg-muted" />
       <div className="pointer-events-none absolute left-2 top-2 rounded bg-black/70 px-2 py-1 text-xs text-white">
         {status === "loading" && "loading map…"}

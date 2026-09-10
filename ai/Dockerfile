@@ -12,7 +12,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 WORKDIR /app
 COPY --from=gobuild /out/ai /usr/local/bin/ai
 COPY ai/python/requirements.txt python/
-RUN pip install --no-cache-dir -r python/requirements.txt
+# torch installed separately, pinned to the CPU-only wheel index, BEFORE the
+# rest of requirements.txt: a per-line `--index-url` inside requirements.txt
+# does not reliably win when sentence-transformers also pulls in torch as a
+# transitive dependency in the same resolve - confirmed the hard way (a
+# previous fix that looked correct in local testing on macOS/arm64, which
+# has no CUDA wheels to begin with regardless of index, still pulled the
+# full CUDA build here on the real linux/amd64 target and overflowed disk).
+# Installing torch on its own first means it's already satisfied by the time
+# sentence-transformers is resolved, so nothing pulls the CUDA variant in.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch && \
+    pip install --no-cache-dir -r python/requirements.txt
 COPY ai/python/app.py ai/python/embeddings.py ai/python/gdelt.py ai/python/landcover.py python/
 
 # start.sh: rag sidecar (:8003) first, then the Go gRPC server (:8002)

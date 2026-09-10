@@ -5,8 +5,11 @@ numpy
 asyncpg
 redis
 rasterio
-# CPU-only wheel - sentence-transformers pulls the full CUDA-enabled torch
-# by default (multi-GB of nvidia-* packages this t3.micro has no GPU to use
-# and no disk to hold - this is what broke the production deploy).
+# Best-effort for a standalone `pip install -r requirements.txt` (e.g. local
+# dev outside Docker) - NOT relied on for the real production install. A
+# per-line --index-url here does not reliably survive sentence-transformers
+# also depending on torch in the same resolve (confirmed on the actual
+# linux/amd64 target - see ai/Dockerfile, which installs torch from this
+# CPU-only index in its own separate step first).
 torch --index-url https://download.pytorch.org/whl/cpu
 sentence-transformers

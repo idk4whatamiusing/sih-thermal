@@ -52,6 +52,7 @@ NATURAL_KEYWORDS = ["wildfire", "forest fire", "bushfire", "grassland fire",
 
 
 def _fips_country(lat: float, lon: float) -> Optional[str]:
+    time.sleep(1.1)  # Nominatim usage policy: max 1 req/s
     try:
         resp = httpx.get(_NOMINATIM, params={"format": "json", "lat": lat, "lon": lon, "zoom": 3},
                           headers={"User-Agent": "orbis-gdeltsync/0.1 (PS162 SIH2026)"}, timeout=10)
@@ -92,6 +93,9 @@ def label_from_gdelt(lat: float, lon: float, date_from: str, date_to: str) -> Op
     }
     try:
         resp = httpx.get(_DOC_API, params=params, timeout=15)
+        if resp.status_code == 429:  # burst quota: back off once, then give up gracefully
+            time.sleep(15)
+            resp = httpx.get(_DOC_API, params=params, timeout=15)
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:

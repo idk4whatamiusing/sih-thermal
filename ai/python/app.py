@@ -1,13 +1,16 @@
-"""PS162 Python sidecar — FIRMS thermal classifier + legacy RAG stubs.
+"""PS162 Python sidecar — FIRMS thermal classifier + embeddings.
 
-Replaces RAG with:
   POST /firms/predict  {lat, lon, frp, bright_ti4, ...} -> {predicted_class, industrial_prob, persistence}
   POST /firms/ingest   {bbox, date_from, date_to} -> ingests FIRMS CSV (requires FIRMS_MAP_KEY)
   POST /firms/cluster  {points: [...]}  -> DBSCAN persistence scoring
+  POST /gdelt/label    {lat, lon, date_from, date_to} -> independent weak label from GDELT news
+  POST /embed          {text} -> 768-dim bge-base-en-v1.5 embedding (pgvector storage/query lives
+                                  in Postgres via db gRPC - this sidecar only computes the vector,
+                                  it never talks to Postgres directly, same as everything else here)
   GET  /health
 
-Legacy stubs kept so Go Rag client + existing resolvers don't 404 during cutover:
-  /retrieve, /ingest, /cache_lookup, /cache_store -> no-op
+Legacy stubs kept so existing resolvers don't 404 during cutover:
+  /cache_lookup, /cache_store -> no-op
 """
 
 import csv
@@ -25,21 +28,18 @@ import numpy as np
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+import embeddings
 import gdelt
 import landcover
 
 app = FastAPI(title="ai-rag-ps162", version="0.3.0")
 
 # --- keep legacy RAG models for stub compat ---
-class Retrieve(BaseModel):
-    query: str
-    user_id: str = ""
-    collection: str = "support"
-    k: int = 5
+class EmbedRequest(BaseModel):
+    text: str
 
-class Ingest(BaseModel):
-    documents: list[str]
-    collection: str = "support"
+class EmbedReply(BaseModel):
+    embedding: list[float]
 
 class CacheLookup(BaseModel):
     kind: str
@@ -309,13 +309,9 @@ async def gdelt_label(req: GdeltLabelRequest):
     return GdeltLabelReply(found=True, **result)
 
 # --- legacy stubs (keep 200 so Go rag client doesn't error during removal) ---
-@app.post("/retrieve")
-async def retrieve(body: Retrieve):
-    return {"sources": []}
-
-@app.post("/ingest")
-async def ingest_legacy(body: Ingest):
-    return {"chunks": 0}
+@app.post("/embed")
+async def embed_endpoint(req: EmbedRequest):
+    return EmbedReply(embedding=embeddings.embed(req.text))
 
 @app.post("/cache_lookup")
 async def cache_lookup(body: CacheLookup):

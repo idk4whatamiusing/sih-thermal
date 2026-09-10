@@ -5,3 +5,4 @@ numpy
 asyncpg
 redis
 rasterio
+sentence-transformers

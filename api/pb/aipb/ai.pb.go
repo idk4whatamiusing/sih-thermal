@@ -747,8 +747,11 @@ type ClassifyFirmsPointReply struct {
 	Persistence    float64                `protobuf:"fixed64,3,opt,name=persistence,proto3" json:"persistence,omitempty"`
 	Reasons        []string               `protobuf:"bytes,4,rep,name=reasons,proto3" json:"reasons,omitempty"`
 	Landcover      *int32                 `protobuf:"varint,5,opt,name=landcover,proto3,oneof" json:"landcover,omitempty"` // value actually used (supplied or auto-sampled)
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// similar past cases from the RAG store (Phase 3a), populated on every
+	// call, not just ambiguous ones - reuses the Source message from chat.
+	SimilarCases  []*Source `protobuf:"bytes,6,rep,name=similar_cases,json=similarCases,proto3" json:"similar_cases,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClassifyFirmsPointReply) Reset() {
@@ -814,6 +817,13 @@ func (x *ClassifyFirmsPointReply) GetLandcover() int32 {
 		return *x.Landcover
 	}
 	return 0
+}
+
+func (x *ClassifyFirmsPointReply) GetSimilarCases() []*Source {
+	if x != nil {
+		return x.SimilarCases
+	}
+	return nil
 }
 
 type FirmsClusterPointIn struct {
@@ -1275,13 +1285,14 @@ const file_ai_proto_rawDesc = "" +
 	"\x12_dist_industrial_mB\x14\n" +
 	"\x12_inside_industrialB\f\n" +
 	"\n" +
-	"_landcover\"\xd8\x01\n" +
+	"_landcover\"\x95\x02\n" +
 	"\x17ClassifyFirmsPointReply\x12'\n" +
 	"\x0fpredicted_class\x18\x01 \x01(\tR\x0epredictedClass\x12'\n" +
 	"\x0findustrial_prob\x18\x02 \x01(\x01R\x0eindustrialProb\x12 \n" +
 	"\vpersistence\x18\x03 \x01(\x01R\vpersistence\x12\x18\n" +
 	"\areasons\x18\x04 \x03(\tR\areasons\x12!\n" +
-	"\tlandcover\x18\x05 \x01(\x05H\x00R\tlandcover\x88\x01\x01B\f\n" +
+	"\tlandcover\x18\x05 \x01(\x05H\x00R\tlandcover\x88\x01\x01\x12;\n" +
+	"\rsimilar_cases\x18\x06 \x03(\v2\x16.meridian.ai.v1.SourceR\fsimilarCasesB\f\n" +
 	"\n" +
 	"_landcover\"K\n" +
 	"\x13FirmsClusterPointIn\x12\x10\n" +
@@ -1363,29 +1374,30 @@ var file_ai_proto_depIdxs = []int32{
 	1,  // 0: meridian.ai.v1.ChatReply.sources:type_name -> meridian.ai.v1.Source
 	1,  // 1: meridian.ai.v1.ChatChunk.sources:type_name -> meridian.ai.v1.Source
 	1,  // 2: meridian.ai.v1.SupportChunk.sources:type_name -> meridian.ai.v1.Source
-	12, // 3: meridian.ai.v1.ClusterFirmsPointsRequest.points:type_name -> meridian.ai.v1.FirmsClusterPointIn
-	14, // 4: meridian.ai.v1.ClusterFirmsPointsReply.clusters:type_name -> meridian.ai.v1.FirmsClusterPointOut
-	0,  // 5: meridian.ai.v1.Ai.Chat:input_type -> meridian.ai.v1.ChatRequest
-	0,  // 6: meridian.ai.v1.Ai.ChatStream:input_type -> meridian.ai.v1.ChatRequest
-	4,  // 7: meridian.ai.v1.Ai.SupportQuery:input_type -> meridian.ai.v1.SupportQueryRequest
-	6,  // 8: meridian.ai.v1.Ai.Ingest:input_type -> meridian.ai.v1.IngestRequest
-	8,  // 9: meridian.ai.v1.Ai.Predict:input_type -> meridian.ai.v1.PredictRequest
-	10, // 10: meridian.ai.v1.Ai.ClassifyFirmsPoint:input_type -> meridian.ai.v1.ClassifyFirmsPointRequest
-	13, // 11: meridian.ai.v1.Ai.ClusterFirmsPoints:input_type -> meridian.ai.v1.ClusterFirmsPointsRequest
-	16, // 12: meridian.ai.v1.Ai.IngestFirms:input_type -> meridian.ai.v1.IngestFirmsRequest
-	2,  // 13: meridian.ai.v1.Ai.Chat:output_type -> meridian.ai.v1.ChatReply
-	3,  // 14: meridian.ai.v1.Ai.ChatStream:output_type -> meridian.ai.v1.ChatChunk
-	5,  // 15: meridian.ai.v1.Ai.SupportQuery:output_type -> meridian.ai.v1.SupportChunk
-	7,  // 16: meridian.ai.v1.Ai.Ingest:output_type -> meridian.ai.v1.IngestReply
-	9,  // 17: meridian.ai.v1.Ai.Predict:output_type -> meridian.ai.v1.PredictReply
-	11, // 18: meridian.ai.v1.Ai.ClassifyFirmsPoint:output_type -> meridian.ai.v1.ClassifyFirmsPointReply
-	15, // 19: meridian.ai.v1.Ai.ClusterFirmsPoints:output_type -> meridian.ai.v1.ClusterFirmsPointsReply
-	17, // 20: meridian.ai.v1.Ai.IngestFirms:output_type -> meridian.ai.v1.IngestFirmsReply
-	13, // [13:21] is the sub-list for method output_type
-	5,  // [5:13] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	1,  // 3: meridian.ai.v1.ClassifyFirmsPointReply.similar_cases:type_name -> meridian.ai.v1.Source
+	12, // 4: meridian.ai.v1.ClusterFirmsPointsRequest.points:type_name -> meridian.ai.v1.FirmsClusterPointIn
+	14, // 5: meridian.ai.v1.ClusterFirmsPointsReply.clusters:type_name -> meridian.ai.v1.FirmsClusterPointOut
+	0,  // 6: meridian.ai.v1.Ai.Chat:input_type -> meridian.ai.v1.ChatRequest
+	0,  // 7: meridian.ai.v1.Ai.ChatStream:input_type -> meridian.ai.v1.ChatRequest
+	4,  // 8: meridian.ai.v1.Ai.SupportQuery:input_type -> meridian.ai.v1.SupportQueryRequest
+	6,  // 9: meridian.ai.v1.Ai.Ingest:input_type -> meridian.ai.v1.IngestRequest
+	8,  // 10: meridian.ai.v1.Ai.Predict:input_type -> meridian.ai.v1.PredictRequest
+	10, // 11: meridian.ai.v1.Ai.ClassifyFirmsPoint:input_type -> meridian.ai.v1.ClassifyFirmsPointRequest
+	13, // 12: meridian.ai.v1.Ai.ClusterFirmsPoints:input_type -> meridian.ai.v1.ClusterFirmsPointsRequest
+	16, // 13: meridian.ai.v1.Ai.IngestFirms:input_type -> meridian.ai.v1.IngestFirmsRequest
+	2,  // 14: meridian.ai.v1.Ai.Chat:output_type -> meridian.ai.v1.ChatReply
+	3,  // 15: meridian.ai.v1.Ai.ChatStream:output_type -> meridian.ai.v1.ChatChunk
+	5,  // 16: meridian.ai.v1.Ai.SupportQuery:output_type -> meridian.ai.v1.SupportChunk
+	7,  // 17: meridian.ai.v1.Ai.Ingest:output_type -> meridian.ai.v1.IngestReply
+	9,  // 18: meridian.ai.v1.Ai.Predict:output_type -> meridian.ai.v1.PredictReply
+	11, // 19: meridian.ai.v1.Ai.ClassifyFirmsPoint:output_type -> meridian.ai.v1.ClassifyFirmsPointReply
+	15, // 20: meridian.ai.v1.Ai.ClusterFirmsPoints:output_type -> meridian.ai.v1.ClusterFirmsPointsReply
+	17, // 21: meridian.ai.v1.Ai.IngestFirms:output_type -> meridian.ai.v1.IngestFirmsReply
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_proto_init() }

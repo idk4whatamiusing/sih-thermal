@@ -86,7 +86,7 @@ func (s *server) Chat(ctx context.Context, req *aipb.ChatRequest) (*aipb.ChatRep
 	var sources []rag.Source
 	var ctxText string
 	if req.GetUseRag() {
-		srcs, err := s.rag.Retrieve(req.GetMessage(), collection, topK)
+		srcs, err := s.retrieveDocs(ctx, req.GetMessage(), collection, topK)
 		if err == nil && len(srcs) > 0 {
 			sources = srcs
 			var b strings.Builder
@@ -158,7 +158,7 @@ func (s *server) SupportQuery(req *aipb.SupportQueryRequest, stream aipb.Ai_Supp
 		return stream.Send(&aipb.SupportChunk{Delta: hit.Answer, Done: true, Cached: true})
 	}
 
-	sources, err := s.rag.Retrieve(msg, "support", topK)
+	sources, err := s.retrieveDocs(stream.Context(), msg, "support", topK)
 	if err != nil || len(sources) == 0 {
 		return stream.Send(&aipb.SupportChunk{
 			Delta: "I could not find anything in the knowledge base for that. Try rephrasing or contact a human.",
@@ -205,11 +205,54 @@ func (s *server) SupportQuery(req *aipb.SupportQueryRequest, stream aipb.Ai_Supp
 }
 
 func (s *server) Ingest(ctx context.Context, req *aipb.IngestRequest) (*aipb.IngestReply, error) {
-	n, err := s.rag.IngestFull(req.GetDocuments(), collectionOr(req.GetCollection()))
+	n, err := s.ingestDocs(ctx, req.GetDocuments(), collectionOr(req.GetCollection()))
 	if err != nil {
 		return nil, err
 	}
 	return &aipb.IngestReply{Chunks: int32(n)}, nil
+}
+
+// retrieveDocs embeds query via the Python sidecar, then finds similar
+// documents via db.QueryDocuments (pgvector cosine similarity in Postgres -
+// Python never touches Postgres directly).
+func (s *server) retrieveDocs(ctx context.Context, query, collection string, k int) ([]rag.Source, error) {
+	emb, err := s.rag.Embed(query)
+	if err != nil {
+		return nil, err
+	}
+	dctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
+	rep, err := s.db.QueryDocuments(dctx, &dbpb.QueryDocumentsRequest{Collection: collection, Embedding: emb, K: int32(k)})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]rag.Source, len(rep.Matches))
+	for i, m := range rep.Matches {
+		title := m.Title
+		out[i] = rag.Source{Id: m.Id, Title: &title, Text: m.Content, Score: m.Score}
+	}
+	return out, nil
+}
+
+// ingestDocs embeds each document then stores it via db.UpsertDocument. No
+// chunking - each string in `documents` is stored as one document, same
+// granularity the caller already controls (matches the pre-existing
+// "IngestFull" naming/behavior, not a regression introduced here).
+func (s *server) ingestDocs(ctx context.Context, documents []string, collection string) (int, error) {
+	dctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
+	n := 0
+	for _, doc := range documents {
+		emb, err := s.rag.Embed(doc)
+		if err != nil {
+			log.Printf("ingestDocs: embed: %v", err)
+			continue
+		}
+		if _, err := s.db.UpsertDocument(dctx, &dbpb.UpsertDocumentRequest{Collection: collection, Content: doc, Embedding: emb}); err != nil {
+			log.Printf("ingestDocs: upsert: %v", err)
+			continue
+		}
+		n++
+	}
+	return n, nil
 }
 
 func (s *server) Predict(ctx context.Context, req *aipb.PredictRequest) (*aipb.PredictReply, error) {
@@ -274,10 +317,34 @@ func (s *server) ClassifyFirmsPoint(ctx context.Context, req *aipb.ClassifyFirms
 	if err != nil {
 		return nil, err
 	}
+
+	// Surface similar past cases on every result, not just ambiguous ones -
+	// best-effort: a RAG miss shouldn't fail the classification itself.
+	var similarCases []*aipb.Source
+	summary := caseSummary(req.GetLat(), req.GetLon(), req.GetFrp(), preq.DistIndustrialM, rep.PredictedClass)
+	if srcs, err := s.retrieveDocs(ctx, summary, "firms_cases", 3); err != nil {
+		log.Printf("classify: retrieve similar cases: %v", err)
+	} else {
+		similarCases = sourcesFromRAG(srcs)
+	}
+
 	return &aipb.ClassifyFirmsPointReply{
 		PredictedClass: rep.PredictedClass, IndustrialProb: rep.IndustrialProb,
 		Persistence: rep.Persistence, Reasons: rep.Reasons, Landcover: rep.Landcover,
+		SimilarCases: similarCases,
 	}, nil
+}
+
+// caseSummary builds the text description embedded for RAG retrieval/storage
+// of a case - used both for similarCases lookups (every classification) and
+// for the firms_cases documents arbitrateCluster ingests (Phase 3b).
+func caseSummary(lat, lon, frp float64, distM *float64, predictedClass string) string {
+	dist := "unknown"
+	if distM != nil {
+		dist = fmt.Sprintf("%.0fm", *distM)
+	}
+	return fmt.Sprintf("Thermal detection at (%.4f, %.4f), FRP=%.1f, distance to nearest industrial site=%s, classified as %s.",
+		lat, lon, frp, dist, predictedClass)
 }
 
 func (s *server) ClusterFirmsPoints(ctx context.Context, req *aipb.ClusterFirmsPointsRequest) (*aipb.ClusterFirmsPointsReply, error) {
@@ -521,7 +588,84 @@ func (s *server) clusterAndTag(ctx context.Context, persisted []persistedFirmsPo
 				log.Printf("ingest: tag cluster_id on point %s: %v", m.id, err)
 			}
 		}
+
+		// Ambiguous clusters (heuristic majority vote landed on "unknown")
+		// get a second opinion from an LLM, RAG-augmented with similar past
+		// cases - this is the "hard case" arbitration from the pitch.
+		if majorityClass == "unknown" {
+			s.arbitrateCluster(ctx, clusterID, sumLat/n, sumLon/n, sumFrp/n, maxFrp, minDate, maxDate, len(members))
+		}
 	}
+}
+
+// arbitrateCluster asks the configured LLM provider (Cloudflare Workers AI
+// by default, same integration Chat() already uses - no second LLM
+// integration built for this) to classify a cluster the heuristic couldn't,
+// augmented with similar past cases from the RAG store. The verdict is
+// persisted as a label_events row with source="ai_worker", weighted lower
+// than independently-sourced gdelt labels during training (schema.py's
+// SOURCE_WEIGHT) - it is one more signal, never treated as ground truth,
+// consistent with this project's explicit no-human-review design.
+func (s *server) arbitrateCluster(ctx context.Context, clusterID string, lat, lon, avgFrp, maxFrp float64, firstSeen, lastSeen string, count int) {
+	query := fmt.Sprintf("Persistent thermal cluster at (%.4f, %.4f): %d detections from %s to %s, avg FRP=%.1f, max FRP=%.1f.",
+		lat, lon, count, firstSeen, lastSeen, avgFrp, maxFrp)
+	similar, err := s.retrieveDocs(ctx, query, "firms_cases", 3)
+	if err != nil {
+		log.Printf("arbitrate %s: retrieve similar cases: %v", clusterID, err)
+	}
+
+	var b strings.Builder
+	b.WriteString("You are classifying a satellite-detected thermal hotspot cluster. Respond with EXACTLY one line in the form:\n")
+	b.WriteString("LABEL: <industrial_flare|thermal_power|mining|forest|agriculture|unknown>\n\n")
+	b.WriteString(query)
+	if len(similar) > 0 {
+		b.WriteString("\n\nSimilar past cases:\n")
+		for _, sc := range similar {
+			fmt.Fprintf(&b, "- %s\n", sc.Text)
+		}
+	}
+
+	gen, _ := providers.Provider(ctx)
+	ch, err := gen([]providers.Message{{Role: "user", Content: b.String()}})
+	if err != nil {
+		log.Printf("arbitrate %s: llm call: %v", clusterID, err)
+		return
+	}
+	var reply strings.Builder
+	for c := range ch {
+		reply.WriteString(c.Delta)
+	}
+	label := parseArbitrationLabel(reply.String())
+	if label == "" {
+		log.Printf("arbitrate %s: could not parse a label from LLM reply: %q", clusterID, reply.String())
+		return
+	}
+
+	dctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
+	if _, err := s.db.InsertLabelEvent(dctx, &dbpb.InsertLabelEventRequest{
+		ClusterId: clusterID, Source: "ai_worker", Label: label, Confidence: 0.5,
+	}); err != nil {
+		log.Printf("arbitrate %s: insert label event: %v", clusterID, err)
+		return
+	}
+
+	// Feed this case into the RAG store so future arbitrations (and every
+	// classification's similarCases) can retrieve it.
+	if _, err := s.ingestDocs(ctx, []string{query + " Arbitrated label: " + label + "."}, "firms_cases"); err != nil {
+		log.Printf("arbitrate %s: ingest case into RAG store: %v", clusterID, err)
+	}
+}
+
+var arbitrationLabels = []string{"industrial_flare", "thermal_power", "mining", "forest", "agriculture", "unknown"}
+
+func parseArbitrationLabel(reply string) string {
+	lower := strings.ToLower(reply)
+	for _, l := range arbitrationLabels {
+		if strings.Contains(lower, l) {
+			return l
+		}
+	}
+	return ""
 }
 
 // thermalClusterID derives a stable id from the member point ids so

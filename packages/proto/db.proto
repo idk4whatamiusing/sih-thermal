@@ -29,6 +29,13 @@ service Db {
   // PS162: independent weak-label events for training (see 0005_labels.sql)
   rpc InsertLabelEvent(InsertLabelEventRequest) returns (InsertLabelEventReply);
   rpc ListLabelEvents(ListLabelEventsRequest) returns (ListLabelEventsReply);
+
+  // RAG case-history store (pgvector, see 0002_rag.sql). The Python sidecar
+  // computes embeddings (POST /embed) but never talks to Postgres directly -
+  // storage and similarity search happen here, same "only Go talks to the
+  // DB" rule as everything else.
+  rpc UpsertDocument(UpsertDocumentRequest) returns (UpsertDocumentReply);
+  rpc QueryDocuments(QueryDocumentsRequest) returns (QueryDocumentsReply);
 }
 
 message UpsertUserRequest {
@@ -257,4 +264,29 @@ message ListLabelEventsRequest {
 }
 message ListLabelEventsReply {
   repeated LabelEvent events = 1;
+}
+
+message UpsertDocumentRequest {
+  string collection = 1;       // "support" | "chat" | "firms_cases"
+  string title = 2;
+  string content = 3;
+  repeated float embedding = 4; // 768 dims (bge-base-en-v1.5)
+}
+message UpsertDocumentReply {
+  string id = 1;               // documents.id (bigserial) as string
+}
+
+message QueryDocumentsRequest {
+  string collection = 1;
+  repeated float embedding = 2;
+  int32 k = 3;                  // 0 = server default (5), clamped to 50
+}
+message DocumentMatch {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  float score = 4;              // cosine similarity, higher = more similar
+}
+message QueryDocumentsReply {
+  repeated DocumentMatch matches = 1;
 }

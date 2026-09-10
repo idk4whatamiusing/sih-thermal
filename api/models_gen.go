@@ -45,11 +45,12 @@ type ClassifyFirmsPointInput struct {
 }
 
 type FirmsClassification struct {
-	PredictedClass string   `json:"predictedClass"`
-	IndustrialProb float64  `json:"industrialProb"`
-	Persistence    float64  `json:"persistence"`
-	Reasons        []string `json:"reasons"`
-	Landcover      *int     `json:"landcover,omitempty"`
+	PredictedClass string    `json:"predictedClass"`
+	IndustrialProb float64   `json:"industrialProb"`
+	Persistence    float64   `json:"persistence"`
+	Reasons        []string  `json:"reasons"`
+	Landcover      *int      `json:"landcover,omitempty"`
+	SimilarCases   []*Source `json:"similarCases"`
 }
 
 type FirmsPoint struct {

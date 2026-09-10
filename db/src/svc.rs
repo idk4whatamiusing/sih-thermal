@@ -6,16 +6,17 @@ use crate::pb::{
     db_server::Db,
     AppendChatMessageReply, AppendChatMessageRequest, ChatMessage, ChatSession,
     CreateChatSessionReply, CreateChatSessionRequest, DeleteChatSessionReply,
-    DeleteChatSessionRequest, FirmsPoint, InsertLabelEventReply, InsertLabelEventRequest,
-    LabelEvent, ListChatMessagesReply, ListChatMessagesRequest, ListChatSessionsReply,
-    ListChatSessionsRequest, ListFirmsPointsReply, ListFirmsPointsRequest, ListLabelEventsReply,
-    ListLabelEventsRequest, ListThermalClustersReply, ListThermalClustersRequest, ListUsersReply,
-    ListUsersRequest, NearestIndustrialSiteReply, NearestIndustrialSiteRequest,
+    DeleteChatSessionRequest, DocumentMatch, FirmsPoint, InsertLabelEventReply,
+    InsertLabelEventRequest, LabelEvent, ListChatMessagesReply, ListChatMessagesRequest,
+    ListChatSessionsReply, ListChatSessionsRequest, ListFirmsPointsReply, ListFirmsPointsRequest,
+    ListLabelEventsReply, ListLabelEventsRequest, ListThermalClustersReply,
+    ListThermalClustersRequest, ListUsersReply, ListUsersRequest, NearestIndustrialSiteReply,
+    NearestIndustrialSiteRequest, QueryDocumentsReply, QueryDocumentsRequest,
     RenameChatSessionReply, RenameChatSessionRequest, ThermalCluster,
     UpdateFirmsPointClassificationReply, UpdateFirmsPointClassificationRequest,
-    UpsertFirmsPointReply, UpsertFirmsPointRequest, UpsertIndustrialSiteReply,
-    UpsertIndustrialSiteRequest, UpsertThermalClusterReply, UpsertThermalClusterRequest,
-    UpsertUserReply, UpsertUserRequest,
+    UpsertDocumentReply, UpsertDocumentRequest, UpsertFirmsPointReply, UpsertFirmsPointRequest,
+    UpsertIndustrialSiteReply, UpsertIndustrialSiteRequest, UpsertThermalClusterReply,
+    UpsertThermalClusterRequest, UpsertUserReply, UpsertUserRequest,
 };
 
 pub struct DbService {
@@ -608,6 +609,81 @@ impl Db for DbService {
             .collect();
         Ok(Response::new(ListLabelEventsReply { events }))
     }
+
+    async fn upsert_document(
+        &self,
+        req: Request<UpsertDocumentRequest>,
+    ) -> Result<Response<UpsertDocumentReply>, Status> {
+        self.authorize(&req)?;
+        let r = req.into_inner();
+        let embedding = vector_literal(&r.embedding);
+        let row = sqlx::query(
+            "INSERT INTO documents (collection, title, content, embedding)
+             VALUES ($1, $2, $3, $4::vector) RETURNING id",
+        )
+        .bind(&r.collection)
+        .bind(&r.title)
+        .bind(&r.content)
+        .bind(&embedding)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(db_err)?;
+        let id: i64 = row.get("id");
+        Ok(Response::new(UpsertDocumentReply { id: id.to_string() }))
+    }
+
+    async fn query_documents(
+        &self,
+        req: Request<QueryDocumentsRequest>,
+    ) -> Result<Response<QueryDocumentsReply>, Status> {
+        self.authorize(&req)?;
+        let r = req.into_inner();
+        let embedding = vector_literal(&r.embedding);
+        let k: i64 = if r.k <= 0 { 5 } else { r.k.min(50) as i64 };
+        let rows = sqlx::query(
+            "SELECT id, COALESCE(title,'') AS title, content,
+                    1 - (embedding <=> $1::vector) AS score
+             FROM documents WHERE collection = $2
+             ORDER BY embedding <=> $1::vector LIMIT $3",
+        )
+        .bind(&embedding)
+        .bind(&r.collection)
+        .bind(k)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
+        let matches = rows
+            .into_iter()
+            .map(|row| {
+                let id: i64 = row.get("id");
+                let score: f64 = row.get("score");
+                DocumentMatch {
+                    id: id.to_string(),
+                    title: row.get("title"),
+                    content: row.get("content"),
+                    score: score as f32,
+                }
+            })
+            .collect();
+        Ok(Response::new(QueryDocumentsReply { matches }))
+    }
+}
+
+/// Formats an embedding as pgvector's text input syntax ("[0.1,0.2,...]").
+/// No pgvector Rust crate needed - pgvector accepts this via a `::vector`
+/// cast on a plain text-bound parameter, same "raw SQL, no ORM" style as
+/// the rest of this file.
+fn vector_literal(v: &[f32]) -> String {
+    let mut s = String::with_capacity(v.len() * 8 + 2);
+    s.push('[');
+    for (i, f) in v.iter().enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push_str(&f.to_string());
+    }
+    s.push(']');
+    s
 }
 
 fn parse_uuid(s: &str) -> Result<Uuid, Status> {

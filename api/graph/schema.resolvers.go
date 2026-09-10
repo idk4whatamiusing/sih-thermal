@@ -219,9 +219,13 @@ func (r *mutationResolver) ClassifyFirmsPoint(ctx context.Context, input app.Cla
 		v := int(*rep.Landcover)
 		landcover = &v
 	}
+	similarCases := make([]*app.Source, len(rep.SimilarCases))
+	for i, s := range rep.SimilarCases {
+		similarCases[i] = sourceFromPB(s)
+	}
 	return &app.FirmsClassification{
 		PredictedClass: rep.PredictedClass, IndustrialProb: rep.IndustrialProb,
-		Persistence: rep.Persistence, Reasons: rep.Reasons, Landcover: landcover,
+		Persistence: rep.Persistence, Reasons: rep.Reasons, Landcover: landcover, SimilarCases: similarCases,
 	}, nil
 }
 

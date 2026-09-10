@@ -1,5 +1,7 @@
-// Package rag - client for the Python RAG sidecar (localhost:8003).
-// The sidecar owns embeddings, pgvector retrieval and the semantic cache.
+// Package rag - client for the Python sidecar's embedding + semantic-cache
+// endpoints (localhost:8003). Storage/similarity search for the RAG store
+// live in Postgres via db gRPC (see ai/cmd/ai's retrieveDocs/ingestDocs) -
+// this sidecar only computes vectors, it never talks to Postgres directly.
 package rag
 
 import (
@@ -39,22 +41,13 @@ func (c *Client) post(path string, in any, out any) error {
 	return json.NewDecoder(resp.Body).Decode(out)
 }
 
-func (c *Client) Retrieve(query, collection string, k int) ([]Source, error) {
+// Embed returns a 768-dim bge-base-en-v1.5 embedding for text.
+func (c *Client) Embed(text string) ([]float32, error) {
 	var out struct {
-		Sources []Source `json:"sources"`
+		Embedding []float32 `json:"embedding"`
 	}
-	err := c.post("/retrieve", map[string]any{
-		"query": query, "collection": collection, "k": k,
-	}, &out)
-	return out.Sources, err
-}
-
-func (c *Client) IngestFull(documents []string, collection string) (int, error) {
-	var out struct {
-		Chunks int `json:"chunks"`
-	}
-	err := c.post("/ingest", map[string]any{"documents": documents, "collection": collection}, &out)
-	return out.Chunks, err
+	err := c.post("/embed", map[string]any{"text": text}, &out)
+	return out.Embedding, err
 }
 
 type Lookup struct {

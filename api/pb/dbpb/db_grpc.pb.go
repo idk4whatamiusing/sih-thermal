@@ -36,6 +36,8 @@ const (
 	Db_NearestIndustrialSite_FullMethodName          = "/meridian.db.v1.Db/NearestIndustrialSite"
 	Db_InsertLabelEvent_FullMethodName               = "/meridian.db.v1.Db/InsertLabelEvent"
 	Db_ListLabelEvents_FullMethodName                = "/meridian.db.v1.Db/ListLabelEvents"
+	Db_UpsertDocument_FullMethodName                 = "/meridian.db.v1.Db/UpsertDocument"
+	Db_QueryDocuments_FullMethodName                 = "/meridian.db.v1.Db/QueryDocuments"
 )
 
 // DbClient is the client API for Db service.
@@ -64,6 +66,12 @@ type DbClient interface {
 	// PS162: independent weak-label events for training (see 0005_labels.sql)
 	InsertLabelEvent(ctx context.Context, in *InsertLabelEventRequest, opts ...grpc.CallOption) (*InsertLabelEventReply, error)
 	ListLabelEvents(ctx context.Context, in *ListLabelEventsRequest, opts ...grpc.CallOption) (*ListLabelEventsReply, error)
+	// RAG case-history store (pgvector, see 0002_rag.sql). The Python sidecar
+	// computes embeddings (POST /embed) but never talks to Postgres directly -
+	// storage and similarity search happen here, same "only Go talks to the
+	// DB" rule as everything else.
+	UpsertDocument(ctx context.Context, in *UpsertDocumentRequest, opts ...grpc.CallOption) (*UpsertDocumentReply, error)
+	QueryDocuments(ctx context.Context, in *QueryDocumentsRequest, opts ...grpc.CallOption) (*QueryDocumentsReply, error)
 }
 
 type dbClient struct {
@@ -244,6 +252,26 @@ func (c *dbClient) ListLabelEvents(ctx context.Context, in *ListLabelEventsReque
 	return out, nil
 }
 
+func (c *dbClient) UpsertDocument(ctx context.Context, in *UpsertDocumentRequest, opts ...grpc.CallOption) (*UpsertDocumentReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertDocumentReply)
+	err := c.cc.Invoke(ctx, Db_UpsertDocument_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dbClient) QueryDocuments(ctx context.Context, in *QueryDocumentsRequest, opts ...grpc.CallOption) (*QueryDocumentsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueryDocumentsReply)
+	err := c.cc.Invoke(ctx, Db_QueryDocuments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DbServer is the server API for Db service.
 // All implementations must embed UnimplementedDbServer
 // for forward compatibility.
@@ -270,6 +298,12 @@ type DbServer interface {
 	// PS162: independent weak-label events for training (see 0005_labels.sql)
 	InsertLabelEvent(context.Context, *InsertLabelEventRequest) (*InsertLabelEventReply, error)
 	ListLabelEvents(context.Context, *ListLabelEventsRequest) (*ListLabelEventsReply, error)
+	// RAG case-history store (pgvector, see 0002_rag.sql). The Python sidecar
+	// computes embeddings (POST /embed) but never talks to Postgres directly -
+	// storage and similarity search happen here, same "only Go talks to the
+	// DB" rule as everything else.
+	UpsertDocument(context.Context, *UpsertDocumentRequest) (*UpsertDocumentReply, error)
+	QueryDocuments(context.Context, *QueryDocumentsRequest) (*QueryDocumentsReply, error)
 	mustEmbedUnimplementedDbServer()
 }
 
@@ -330,6 +364,12 @@ func (UnimplementedDbServer) InsertLabelEvent(context.Context, *InsertLabelEvent
 }
 func (UnimplementedDbServer) ListLabelEvents(context.Context, *ListLabelEventsRequest) (*ListLabelEventsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLabelEvents not implemented")
+}
+func (UnimplementedDbServer) UpsertDocument(context.Context, *UpsertDocumentRequest) (*UpsertDocumentReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertDocument not implemented")
+}
+func (UnimplementedDbServer) QueryDocuments(context.Context, *QueryDocumentsRequest) (*QueryDocumentsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method QueryDocuments not implemented")
 }
 func (UnimplementedDbServer) mustEmbedUnimplementedDbServer() {}
 func (UnimplementedDbServer) testEmbeddedByValue()            {}
@@ -658,6 +698,42 @@ func _Db_ListLabelEvents_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Db_UpsertDocument_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertDocumentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DbServer).UpsertDocument(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Db_UpsertDocument_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DbServer).UpsertDocument(ctx, req.(*UpsertDocumentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Db_QueryDocuments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryDocumentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DbServer).QueryDocuments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Db_QueryDocuments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DbServer).QueryDocuments(ctx, req.(*QueryDocumentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Db_ServiceDesc is the grpc.ServiceDesc for Db service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -732,6 +808,14 @@ var Db_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListLabelEvents",
 			Handler:    _Db_ListLabelEvents_Handler,
+		},
+		{
+			MethodName: "UpsertDocument",
+			Handler:    _Db_UpsertDocument_Handler,
+		},
+		{
+			MethodName: "QueryDocuments",
+			Handler:    _Db_QueryDocuments_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

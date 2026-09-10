@@ -105,6 +105,9 @@ message ClassifyFirmsPointReply {
   double persistence = 3;
   repeated string reasons = 4;
   optional int32 landcover = 5; // value actually used (supplied or auto-sampled)
+  // similar past cases from the RAG store (Phase 3a), populated on every
+  // call, not just ambiguous ones - reuses the Source message from chat.
+  repeated Source similar_cases = 6;
 }
 
 message FirmsClusterPointIn {

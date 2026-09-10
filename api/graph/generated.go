@@ -65,6 +65,7 @@ type ComplexityRoot struct {
 		Persistence    func(childComplexity int) int
 		PredictedClass func(childComplexity int) int
 		Reasons        func(childComplexity int) int
+		SimilarCases   func(childComplexity int) int
 	}
 
 	FirmsPoint struct {
@@ -310,6 +311,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.FirmsClassification.Reasons(childComplexity), true
+	case "FirmsClassification.similarCases":
+		if e.ComplexityRoot.FirmsClassification.SimilarCases == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FirmsClassification.SimilarCases(childComplexity), true
 
 	case "FirmsPoint.acqDate":
 		if e.ComplexityRoot.FirmsPoint.AcqDate == nil {
@@ -952,6 +959,8 @@ func (ec *executionContext) childFields_FirmsClassification(ctx context.Context,
 		return ec.fieldContext_FirmsClassification_reasons(ctx, field)
 	case "landcover":
 		return ec.fieldContext_FirmsClassification_landcover(ctx, field)
+	case "similarCases":
+		return ec.fieldContext_FirmsClassification_similarCases(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type FirmsClassification", field.Name)
 }
@@ -2055,6 +2064,38 @@ func (ec *executionContext) _FirmsClassification_landcover(ctx context.Context, 
 }
 func (ec *executionContext) fieldContext_FirmsClassification_landcover(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("FirmsClassification", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _FirmsClassification_similarCases(ctx context.Context, field graphql.CollectedField, obj *api.FirmsClassification) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FirmsClassification_similarCases(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SimilarCases, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*api.Source) graphql.Marshaler {
+			return ec.marshalNSource2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐSourceᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FirmsClassification_similarCases(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FirmsClassification",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Source(ctx, field)
+		},
+	}
+	return fc, nil
 }
 
 func (ec *executionContext) _FirmsPoint_id(ctx context.Context, field graphql.CollectedField, obj *api.FirmsPoint) (ret graphql.Marshaler) {
@@ -5458,6 +5499,11 @@ func (ec *executionContext) _FirmsClassification(ctx context.Context, sel ast.Se
 		case "landcover":
 			out.Values[i] = ec._FirmsClassification_landcover(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "similarCases":
+			out.Values[i] = ec._FirmsClassification_similarCases(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		default:

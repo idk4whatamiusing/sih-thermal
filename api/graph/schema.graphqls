@@ -100,6 +100,7 @@ type FirmsClassification {
   persistence: Float!
   reasons: [String!]!
   landcover: Int
+  similarCases: [Source!]!
 }
 
 input ClassifyFirmsPointInput {

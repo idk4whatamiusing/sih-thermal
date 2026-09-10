@@ -92,6 +92,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://app:${POSTGRES_PASSWORD}@postgres:5432/app
+      DB_GRPC_ADDR: db:8010
       REDIS_ADDR: redis://redis:6379
       BACKEND_SECRET: ${BACKEND_SECRET}
       AI_PROVIDER: ${AI_PROVIDER:-cloudflare}
@@ -106,6 +107,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      db:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8081/healthz"]

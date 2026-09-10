@@ -79,7 +79,11 @@ class GdeltLabel(dict):
 
 def label_from_gdelt(lat: float, lon: float, date_from: str, date_to: str) -> Optional[GdeltLabel]:
     fips = _fips_country(lat, lon)
-    query = "(fire OR wildfire OR explosion OR blaze)"
+    # Broad retrieval: industrial incidents are often reported without the
+    # word "fire" (blast, gas leak, refinery). Precision is enforced LATER by
+    # the title classifier (keywords now, LLM judge next) - retrieval should
+    # over-fetch, the decider filters.
+    query = '(fire OR wildfire OR explosion OR blast OR blaze OR "gas leak" OR refinery)'
     if fips:
         query += f" sourcecountry:{fips}"
 

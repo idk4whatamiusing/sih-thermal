@@ -279,9 +279,9 @@ def _f(v: str | None) -> Optional[float]:
     except ValueError:
         return None
 
-# NASA FIRMS area API only serves NRT data going back a limited window and
-# caps day_range at 10 for the NRT products (see firms.modaps.eosdis.nasa.gov/api).
-FIRMS_MAX_DAY_RANGE = 10
+# NASA FIRMS area API caps day_range at 5 for the NRT products
+# (confirmed live 2026-09-10: day_range=10 -> HTTP 400 "Expects [1..5]").
+FIRMS_MAX_DAY_RANGE = 5
 
 # World 1yr+ backfill (issue #20): ingest each sensor separately so the
 # per-product 10-day cap applies per sensor and cross-sensor dedupe stays

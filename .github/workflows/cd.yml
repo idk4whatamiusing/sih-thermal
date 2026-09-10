@@ -5,6 +5,13 @@ on:
   push:
     branches: [main]
 
+# One deploy at a time: concurrent runs pile docker builds onto a 1GB box
+# and ALL of them time out (seen 4x on 2026-09-10). Newer runs preempt stale
+# queued ones; the survivor always deploys the latest main.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy-cloudflare:
     runs-on: ubuntu-latest
@@ -35,9 +42,10 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          # default is 10m - too short for a from-scratch Rust release build
-          # on a t3.micro, especially now that it's swap-backed (slower I/O)
-          command_timeout: 40m
+          # default is 10m - a cold api+db+ai+realtime rebuild on a swap-backed
+          # t3.micro takes well over 40m (api go build alone ran 27m on
+          # 2026-09-10). 120m fits inside the runner's 6h job cap.
+          command_timeout: 120m
           script: |
             set -e
             cd ~/sih-thermal || cd ~/app

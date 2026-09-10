@@ -1075,13 +1075,18 @@ func (x *ClusterFirmsPointsReply) GetNClusters() int32 {
 }
 
 type IngestFirmsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MinLat        float64                `protobuf:"fixed64,1,opt,name=min_lat,json=minLat,proto3" json:"min_lat,omitempty"`
-	MinLon        float64                `protobuf:"fixed64,2,opt,name=min_lon,json=minLon,proto3" json:"min_lon,omitempty"`
-	MaxLat        float64                `protobuf:"fixed64,3,opt,name=max_lat,json=maxLat,proto3" json:"max_lat,omitempty"`
-	MaxLon        float64                `protobuf:"fixed64,4,opt,name=max_lon,json=maxLon,proto3" json:"max_lon,omitempty"`
-	DateFrom      string                 `protobuf:"bytes,5,opt,name=date_from,json=dateFrom,proto3" json:"date_from,omitempty"`
-	DateTo        string                 `protobuf:"bytes,6,opt,name=date_to,json=dateTo,proto3" json:"date_to,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	MinLat   float64                `protobuf:"fixed64,1,opt,name=min_lat,json=minLat,proto3" json:"min_lat,omitempty"`
+	MinLon   float64                `protobuf:"fixed64,2,opt,name=min_lon,json=minLon,proto3" json:"min_lon,omitempty"`
+	MaxLat   float64                `protobuf:"fixed64,3,opt,name=max_lat,json=maxLat,proto3" json:"max_lat,omitempty"`
+	MaxLon   float64                `protobuf:"fixed64,4,opt,name=max_lon,json=maxLon,proto3" json:"max_lon,omitempty"`
+	DateFrom string                 `protobuf:"bytes,5,opt,name=date_from,json=dateFrom,proto3" json:"date_from,omitempty"`
+	DateTo   string                 `protobuf:"bytes,6,opt,name=date_to,json=dateTo,proto3" json:"date_to,omitempty"`
+	// FIRMS product source, e.g. VIIRS_SNPP_NRT (default) | VIIRS_NOAA20_NRT |
+	// VIIRS_NOAA21_NRT | MODIS_NRT. "" = server default (SNPP). Added for the
+	// world 1yr+ backfill (issue #20) so each sensor is ingested separately;
+	// firmsPointID already includes satellite so cross-sensor upserts stay idempotent.
+	Source        string `protobuf:"bytes,7,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1154,6 +1159,13 @@ func (x *IngestFirmsRequest) GetDateFrom() string {
 func (x *IngestFirmsRequest) GetDateTo() string {
 	if x != nil {
 		return x.DateTo
+	}
+	return ""
+}
+
+func (x *IngestFirmsRequest) GetSource() string {
+	if x != nil {
+		return x.Source
 	}
 	return ""
 }
@@ -1314,14 +1326,15 @@ const file_ai_proto_rawDesc = "" +
 	"\x17ClusterFirmsPointsReply\x12@\n" +
 	"\bclusters\x18\x01 \x03(\v2$.meridian.ai.v1.FirmsClusterPointOutR\bclusters\x12\x1d\n" +
 	"\n" +
-	"n_clusters\x18\x02 \x01(\x05R\tnClusters\"\xae\x01\n" +
+	"n_clusters\x18\x02 \x01(\x05R\tnClusters\"\xc6\x01\n" +
 	"\x12IngestFirmsRequest\x12\x17\n" +
 	"\amin_lat\x18\x01 \x01(\x01R\x06minLat\x12\x17\n" +
 	"\amin_lon\x18\x02 \x01(\x01R\x06minLon\x12\x17\n" +
 	"\amax_lat\x18\x03 \x01(\x01R\x06maxLat\x12\x17\n" +
 	"\amax_lon\x18\x04 \x01(\x01R\x06maxLon\x12\x1b\n" +
 	"\tdate_from\x18\x05 \x01(\tR\bdateFrom\x12\x17\n" +
-	"\adate_to\x18\x06 \x01(\tR\x06dateTo\"a\n" +
+	"\adate_to\x18\x06 \x01(\tR\x06dateTo\x12\x16\n" +
+	"\x06source\x18\a \x01(\tR\x06source\"a\n" +
 	"\x10IngestFirmsReply\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12'\n" +

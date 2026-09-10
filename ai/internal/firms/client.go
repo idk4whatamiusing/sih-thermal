@@ -98,6 +98,7 @@ type IngestRequest struct {
 	MaxLon   float64 `json:"max_lon"`
 	DateFrom string  `json:"date_from"`
 	DateTo   string  `json:"date_to"`
+	Source   string  `json:"source,omitempty"` // FIRMS product, "" = sidecar default (SNPP)
 }
 
 type RawPoint struct {

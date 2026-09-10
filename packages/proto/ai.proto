@@ -139,6 +139,11 @@ message IngestFirmsRequest {
   double max_lon = 4;
   string date_from = 5;
   string date_to = 6;
+  // FIRMS product source, e.g. VIIRS_SNPP_NRT (default) | VIIRS_NOAA20_NRT |
+  // VIIRS_NOAA21_NRT | MODIS_NRT. "" = server default (SNPP). Added for the
+  // world 1yr+ backfill (issue #20) so each sensor is ingested separately;
+  // firmsPointID already includes satellite so cross-sensor upserts stay idempotent.
+  string source = 7;
 }
 message IngestFirmsReply {
   bool ok = 1;

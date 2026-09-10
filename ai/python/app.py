@@ -94,6 +94,7 @@ class IngestFirmsRequest(BaseModel):
     max_lon: float
     date_from: str = ""  # YYYY-MM-DD, "" = today
     date_to: str = ""    # YYYY-MM-DD, "" = today
+    source: str = "VIIRS_SNPP_NRT"  # FIRMS product; see FIRMS_SOURCES allowlist
 
 class FirmsRawPoint(BaseModel):
     lat: float
@@ -260,11 +261,20 @@ def _f(v: str | None) -> Optional[float]:
 # caps day_range at 10 for the NRT products (see firms.modaps.eosdis.nasa.gov/api).
 FIRMS_MAX_DAY_RANGE = 10
 
+# World 1yr+ backfill (issue #20): ingest each sensor separately so the
+# per-product 10-day cap applies per sensor and cross-sensor dedupe stays
+# idempotent via firmsPointID(satellite|date|time|lat|lon) in Go.
+FIRMS_SOURCES = ("VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT", "MODIS_NRT")
+
 @app.post("/firms/ingest")
 async def firms_ingest(req: IngestFirmsRequest):
     key = os.getenv("FIRMS_MAP_KEY")
     if not key:
         return IngestFirmsReply(ok=False, error="FIRMS_MAP_KEY not set in .env")
+
+    source = (req.source or "VIIRS_SNPP_NRT").strip() or "VIIRS_SNPP_NRT"
+    if source not in FIRMS_SOURCES:
+        return IngestFirmsReply(ok=False, error=f"unknown FIRMS source {source!r} (want one of {', '.join(FIRMS_SOURCES)})")
 
     today = date.today()
     end = date.fromisoformat(req.date_to) if req.date_to else today
@@ -272,7 +282,7 @@ async def firms_ingest(req: IngestFirmsRequest):
     day_range = max(1, min(FIRMS_MAX_DAY_RANGE, (end - start).days + 1))
 
     bbox = f"{req.min_lon},{req.min_lat},{req.max_lon},{req.max_lat}"
-    url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/VIIRS_SNPP_NRT/{bbox}/{day_range}/{end.isoformat()}"
+    url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{source}/{bbox}/{day_range}/{end.isoformat()}"
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:

@@ -101,7 +101,7 @@ type ComplexityRoot struct {
 		ClassifyFirmsPoint             func(childComplexity int, input api.ClassifyFirmsPointInput) int
 		CreateChatSession              func(childComplexity int, title *string) int
 		DeleteSession                  func(childComplexity int, id string) int
-		IngestFirms                    func(childComplexity int, bbox api.BoundingBox, dateFrom string, dateTo string) int
+		IngestFirms                    func(childComplexity int, bbox api.BoundingBox, dateFrom string, dateTo string, source *string) int
 		IngestSupport                  func(childComplexity int, documents []string) int
 		Login                          func(childComplexity int, email string) int
 		Logout                         func(childComplexity int) int
@@ -171,7 +171,7 @@ type MutationResolver interface {
 	UpsertFirmsPoint(ctx context.Context, point api.FirmsPointInput) (string, error)
 	UpdateFirmsPointClassification(ctx context.Context, id string, predictedClass string, industrialProb float64, persistenceScore float64, distIndustrialM float64, insideIndustrial bool, landcover int, clusterID *string) (bool, error)
 	ClassifyFirmsPoint(ctx context.Context, input api.ClassifyFirmsPointInput) (*api.FirmsClassification, error)
-	IngestFirms(ctx context.Context, bbox api.BoundingBox, dateFrom string, dateTo string) (int, error)
+	IngestFirms(ctx context.Context, bbox api.BoundingBox, dateFrom string, dateTo string, source *string) (int, error)
 }
 type QueryResolver interface {
 	Me(ctx context.Context) (*api.User, error)
@@ -511,7 +511,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.IngestFirms(childComplexity, args["bbox"].(api.BoundingBox), args["dateFrom"].(string), args["dateTo"].(string)), true
+		return e.ComplexityRoot.Mutation.IngestFirms(childComplexity, args["bbox"].(api.BoundingBox), args["dateFrom"].(string), args["dateTo"].(string), args["source"].(*string)), true
 	case "Mutation.ingestSupport":
 		if e.ComplexityRoot.Mutation.IngestSupport == nil {
 			break
@@ -1300,6 +1300,14 @@ func (ec *executionContext) field_Mutation_ingestFirms_args(ctx context.Context,
 		return nil, err
 	}
 	args["dateTo"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "source",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["source"] = arg3
 	return args, nil
 }
 
@@ -3098,7 +3106,7 @@ func (ec *executionContext) _Mutation_ingestFirms(ctx context.Context, field gra
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().IngestFirms(ctx, fc.Args["bbox"].(api.BoundingBox), fc.Args["dateFrom"].(string), fc.Args["dateTo"].(string))
+			return ec.Resolvers.Mutation().IngestFirms(ctx, fc.Args["bbox"].(api.BoundingBox), fc.Args["dateFrom"].(string), fc.Args["dateTo"].(string), fc.Args["source"].(*string))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {

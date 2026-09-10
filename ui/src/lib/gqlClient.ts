@@ -94,3 +94,84 @@ export interface ChatSession {
   pinned: boolean;
   updatedAt: string;
 }
+
+// ---- PS162 FIRMS ----
+
+export interface BoundingBox {
+  minLat: number;
+  minLon: number;
+  maxLat: number;
+  maxLon: number;
+}
+
+export interface FirmsPoint {
+  id: string;
+  latitude: number;
+  longitude: number;
+  acqDate: string;
+  frp: number;
+  confidence: string;
+  satellite: string;
+  distIndustrialM: number;
+  insideIndustrial: boolean;
+  persistenceScore: number;
+  predictedClass: string;
+  industrialProb: number;
+  clusterId: string | null;
+}
+
+export interface ThermalCluster {
+  id: string;
+  centroidLat: number;
+  centroidLon: number;
+  count: number;
+  avgFrp: number;
+  maxFrp: number;
+  persistence: number;
+  firstSeen: string;
+  lastSeen: string;
+  predictedClass: string;
+  osmId: string | null;
+}
+
+export interface Source {
+  id: string;
+  title: string | null;
+  text: string;
+  score: number;
+}
+
+export interface FirmsClassification {
+  predictedClass: string;
+  industrialProb: number;
+  persistence: number;
+  reasons: string[];
+  landcover: number | null;
+  similarCases: Source[];
+}
+
+export const FIRMS_POINTS_QUERY = `
+  query FirmsPoints($bbox: BoundingBox!, $limit: Int) {
+    firmsPoints(bbox: $bbox, limit: $limit) {
+      id latitude longitude acqDate frp confidence satellite
+      distIndustrialM insideIndustrial persistenceScore predictedClass industrialProb clusterId
+    }
+  }
+`;
+
+export const THERMAL_CLUSTERS_QUERY = `
+  query ThermalClusters($bbox: BoundingBox!) {
+    thermalClusters(bbox: $bbox) {
+      id centroidLat centroidLon count avgFrp maxFrp persistence firstSeen lastSeen predictedClass osmId
+    }
+  }
+`;
+
+export const CLASSIFY_FIRMS_POINT = `
+  mutation ClassifyFirmsPoint($input: ClassifyFirmsPointInput!) {
+    classifyFirmsPoint(input: $input) {
+      predictedClass industrialProb persistence reasons landcover
+      similarCases { id title text score }
+    }
+  }
+`;

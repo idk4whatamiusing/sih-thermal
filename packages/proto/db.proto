@@ -16,6 +16,26 @@ service Db {
   rpc DeleteChatSession(DeleteChatSessionRequest) returns (DeleteChatSessionReply);
   rpc AppendChatMessage(AppendChatMessageRequest) returns (AppendChatMessageReply);
   rpc ListChatMessages(ListChatMessagesRequest) returns (ListChatMessagesReply);
+
+  // PS162: FIRMS thermal points, clusters, and OSM industrial sites
+  rpc UpsertFirmsPoint(UpsertFirmsPointRequest) returns (UpsertFirmsPointReply);
+  rpc ListFirmsPoints(ListFirmsPointsRequest) returns (ListFirmsPointsReply);
+  rpc UpdateFirmsPointClassification(UpdateFirmsPointClassificationRequest) returns (UpdateFirmsPointClassificationReply);
+  rpc UpsertThermalCluster(UpsertThermalClusterRequest) returns (UpsertThermalClusterReply);
+  rpc ListThermalClusters(ListThermalClustersRequest) returns (ListThermalClustersReply);
+  rpc UpsertIndustrialSite(UpsertIndustrialSiteRequest) returns (UpsertIndustrialSiteReply);
+  rpc NearestIndustrialSite(NearestIndustrialSiteRequest) returns (NearestIndustrialSiteReply);
+
+  // PS162: independent weak-label events for training (see 0005_labels.sql)
+  rpc InsertLabelEvent(InsertLabelEventRequest) returns (InsertLabelEventReply);
+  rpc ListLabelEvents(ListLabelEventsRequest) returns (ListLabelEventsReply);
+
+  // RAG case-history store (pgvector, see 0002_rag.sql). The Python sidecar
+  // computes embeddings (POST /embed) but never talks to Postgres directly -
+  // storage and similarity search happen here, same "only Go talks to the
+  // DB" rule as everything else.
+  rpc UpsertDocument(UpsertDocumentRequest) returns (UpsertDocumentReply);
+  rpc QueryDocuments(QueryDocumentsRequest) returns (QueryDocumentsReply);
 }
 
 message UpsertUserRequest {
@@ -98,4 +118,175 @@ message ListChatMessagesRequest {
 }
 message ListChatMessagesReply {
   repeated ChatMessage messages = 1;
+}
+
+// --- PS162: FIRMS / GIS ---
+
+message FirmsPoint {
+  string id = 1;               // uuid; caller-supplied so re-ingestion is idempotent
+  double latitude = 2;
+  double longitude = 3;
+  string acq_date = 4;         // YYYY-MM-DD
+  string acq_time = 5;         // HH:MM:SS, optional ("" if unknown)
+  double bright_ti4 = 6;
+  double bright_ti5 = 7;
+  double frp = 8;
+  string confidence = 9;
+  string satellite = 10;
+  double bright_t31 = 11;
+  double scan = 12;
+  double track = 13;
+  int32 landcover = 14;        // ESA WorldCover class code, 0 = unknown
+  double dist_industrial_m = 15;
+  bool inside_industrial = 16;
+  int64 osm_id = 17;           // nearest industrial_sites.osm_id, 0 = none
+  double persistence_score = 18;
+  string predicted_class = 19; // industrial_flare | thermal_power | mining | forest | agriculture | unknown
+  double industrial_prob = 20;
+  string cluster_id = 21;      // uuid, "" if unclustered
+}
+
+message UpsertFirmsPointRequest {
+  FirmsPoint point = 1;
+}
+message UpsertFirmsPointReply {
+  string id = 1;
+}
+
+message ListFirmsPointsRequest {
+  double min_lat = 1;
+  double min_lon = 2;
+  double max_lat = 3;
+  double max_lon = 4;
+  string date_from = 5;        // YYYY-MM-DD, "" = no lower bound
+  string date_to = 6;          // YYYY-MM-DD, "" = no upper bound
+  string predicted_class = 7;  // "" = all classes
+  int32 limit = 8;             // 0 = server default (500), clamped to 5000
+}
+message ListFirmsPointsReply {
+  repeated FirmsPoint points = 1;
+}
+
+message UpdateFirmsPointClassificationRequest {
+  string id = 1;
+  string predicted_class = 2;
+  double industrial_prob = 3;
+  double persistence_score = 4;
+  double dist_industrial_m = 5;
+  bool inside_industrial = 6;
+  int32 landcover = 7;
+  string cluster_id = 8;       // "" = leave unchanged
+}
+message UpdateFirmsPointClassificationReply {
+  bool ok = 1;
+}
+
+message ThermalCluster {
+  string id = 1;
+  double centroid_lat = 2;
+  double centroid_lon = 3;
+  int32 count = 4;
+  double avg_frp = 5;
+  double max_frp = 6;
+  double persistence = 7;
+  string first_seen = 8;       // YYYY-MM-DD
+  string last_seen = 9;        // YYYY-MM-DD
+  string predicted_class = 10;
+  int64 osm_id = 11;           // 0 = none
+}
+
+message UpsertThermalClusterRequest {
+  ThermalCluster cluster = 1;
+}
+message UpsertThermalClusterReply {
+  string id = 1;
+}
+
+message ListThermalClustersRequest {
+  double min_lat = 1;
+  double min_lon = 2;
+  double max_lat = 3;
+  double max_lon = 4;
+}
+message ListThermalClustersReply {
+  repeated ThermalCluster clusters = 1;
+}
+
+message UpsertIndustrialSiteRequest {
+  int64 osm_id = 1;
+  double centroid_lat = 2;
+  double centroid_lon = 3;
+  string industrial_type = 4;  // refinery | power_plant | steel | mining | lng | other
+  string name = 5;
+  string tags_json = 6;        // raw JSON object as text, stored into JSONB; "" = null
+}
+message UpsertIndustrialSiteReply {
+  bool ok = 1;
+}
+
+message NearestIndustrialSiteRequest {
+  double lat = 1;
+  double lon = 2;
+}
+message NearestIndustrialSiteReply {
+  bool found = 1;
+  int64 osm_id = 2;
+  double dist_m = 3;
+  bool inside = 4;              // v1: dist_m < 50, no polygon containment test yet
+  string industrial_type = 5;
+}
+
+message InsertLabelEventRequest {
+  string cluster_id = 1;
+  string source = 2;             // "gdelt" | "ai_worker"
+  string label = 3;
+  double confidence = 4;
+  string matched_article_url = 5;
+  string matched_article_title = 6;
+}
+message InsertLabelEventReply {
+  string id = 1;
+}
+
+message LabelEvent {
+  string id = 1;
+  string cluster_id = 2;
+  string source = 3;
+  string label = 4;
+  double confidence = 5;
+  string matched_article_url = 6;
+  string matched_article_title = 7;
+  string created_at = 8;
+}
+message ListLabelEventsRequest {
+  string cluster_id = 1;         // "" = all clusters
+  int32 limit = 2;                // 0 = server default (500), clamped to 5000
+}
+message ListLabelEventsReply {
+  repeated LabelEvent events = 1;
+}
+
+message UpsertDocumentRequest {
+  string collection = 1;       // "support" | "chat" | "firms_cases"
+  string title = 2;
+  string content = 3;
+  repeated float embedding = 4; // 768 dims (bge-base-en-v1.5)
+}
+message UpsertDocumentReply {
+  string id = 1;               // documents.id (bigserial) as string
+}
+
+message QueryDocumentsRequest {
+  string collection = 1;
+  repeated float embedding = 2;
+  int32 k = 3;                  // 0 = server default (5), clamped to 50
+}
+message DocumentMatch {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  float score = 4;              // cosine similarity, higher = more similar
+}
+message QueryDocumentsReply {
+  repeated DocumentMatch matches = 1;
 }

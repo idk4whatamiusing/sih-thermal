@@ -3,12 +3,12 @@ import packageJson from "../../package.json";
 const currentYear = new Date().getFullYear();
 
 export const APP_CONFIG = {
-  name: "Studio Admin",
+  name: "Orbis",
   version: packageJson.version,
-  copyright: `© ${currentYear}, Studio Admin.`,
+  copyright: `© ${currentYear}, Orbis (Team Meridian, SIH26162).`,
   meta: {
-    title: "Studio Admin - Modern Next.js Dashboard Starter Template",
+    title: "Orbis — Industrial Fire Detection (PS162)",
     description:
-      "Studio Admin is a modern, open-source dashboard starter template built with Next.js 16, Tailwind CSS v4, and shadcn/ui. Perfect for SaaS apps, admin panels, and internal tools—fully customizable and production-ready.",
+      "Orbis classifies NASA FIRMS thermal detections as industrial fires vs. natural sources using OSM industrial-site enrichment, landcover, and a trained classifier with RAG-augmented AI arbitration for ambiguous cases.",
   },
 };

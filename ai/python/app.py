@@ -1,20 +1,26 @@
-"""PS162 Python sidecar — FIRMS thermal classifier + legacy RAG stubs.
+"""PS162 Python sidecar — FIRMS thermal classifier + embeddings.
 
-Replaces RAG with:
   POST /firms/predict  {lat, lon, frp, bright_ti4, ...} -> {predicted_class, industrial_prob, persistence}
   POST /firms/ingest   {bbox, date_from, date_to} -> ingests FIRMS CSV (requires FIRMS_MAP_KEY)
   POST /firms/cluster  {points: [...]}  -> DBSCAN persistence scoring
+  POST /gdelt/label    {lat, lon, date_from, date_to} -> independent weak label from GDELT news
+  POST /embed          {text} -> 768-dim bge-base-en-v1.5 embedding (pgvector storage/query lives
+                                  in Postgres via db gRPC - this sidecar only computes the vector,
+                                  it never talks to Postgres directly, same as everything else here)
   GET  /health
 
-Legacy stubs kept so Go Rag client + existing resolvers don't 404 during cutover:
-  /retrieve, /ingest, /cache_lookup, /cache_store -> no-op
+Legacy stubs kept so existing resolvers don't 404 during cutover:
+  /cache_lookup, /cache_store -> no-op
 """
 
+import csv
 import hashlib
+import io
 import json
 import math
 import os
 import time
+from datetime import date
 from typing import Optional
 
 import httpx
@@ -22,18 +28,18 @@ import numpy as np
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+import embeddings
+import gdelt
+import landcover
+
 app = FastAPI(title="ai-rag-ps162", version="0.3.0")
 
 # --- keep legacy RAG models for stub compat ---
-class Retrieve(BaseModel):
-    query: str
-    user_id: str = ""
-    collection: str = "support"
-    k: int = 5
+class EmbedRequest(BaseModel):
+    text: str
 
-class Ingest(BaseModel):
-    documents: list[str]
-    collection: str = "support"
+class EmbedReply(BaseModel):
+    embedding: list[float]
 
 class CacheLookup(BaseModel):
     kind: str
@@ -68,6 +74,7 @@ class FirmsPredictReply(BaseModel):
     industrial_prob: float
     persistence: float
     reasons: list[str]
+    landcover: Optional[int] = None  # the value actually used (supplied or auto-sampled)
 
 class FirmsClusterPoint(BaseModel):
     lat: float
@@ -79,6 +86,45 @@ class FirmsClusterRequest(BaseModel):
     eps_m: float = 1000  # DBSCAN eps in meters approx
     min_samples: int = 3
     window_days: int = 30
+
+class IngestFirmsRequest(BaseModel):
+    min_lat: float
+    min_lon: float
+    max_lat: float
+    max_lon: float
+    date_from: str = ""  # YYYY-MM-DD, "" = today
+    date_to: str = ""    # YYYY-MM-DD, "" = today
+
+class FirmsRawPoint(BaseModel):
+    lat: float
+    lon: float
+    acq_date: str
+    acq_time: str = ""
+    bright_ti4: Optional[float] = None
+    bright_ti5: Optional[float] = None
+    frp: Optional[float] = None
+    confidence: Optional[str] = None
+    satellite: Optional[str] = None
+    scan: Optional[float] = None
+    track: Optional[float] = None
+
+class IngestFirmsReply(BaseModel):
+    ok: bool
+    error: str = ""
+    points: list[FirmsRawPoint] = []
+
+class GdeltLabelRequest(BaseModel):
+    lat: float
+    lon: float
+    date_from: str
+    date_to: str
+
+class GdeltLabelReply(BaseModel):
+    found: bool
+    label: str = ""
+    confidence: float = 0.0
+    matched_article_url: str = ""
+    matched_article_title: str = ""
 
 # --- helpers ---
 def haversine_m(lat1, lon1, lat2, lon2):
@@ -98,6 +144,15 @@ async def health():
 async def firms_predict(req: FirmsPredictRequest):
     reasons = []
     score = 0.0  # industrial_prob 0..1
+
+    # landcover enrichment: if the caller didn't supply it, sample it
+    # ourselves from ESA WorldCover (remote COG partial read, no full
+    # tile download). Best-effort - leave it unset on any failure.
+    if req.landcover is None:
+        try:
+            req.landcover = landcover.sample_landcover(req.lat, req.lon)
+        except Exception:
+            pass
 
     # persistence is strongest signal
     pers = req.persistence if req.persistence is not None else 0.0
@@ -152,7 +207,7 @@ async def firms_predict(req: FirmsPredictRequest):
             clazz = "agriculture"
         else:
             clazz = "forest" if (pers < 0.1) else "mining"
-    return FirmsPredictReply(predicted_class=clazz, industrial_prob=round(score, 3), persistence=pers, reasons=reasons)
+    return FirmsPredictReply(predicted_class=clazz, industrial_prob=round(score, 3), persistence=pers, reasons=reasons, landcover=req.landcover)
 
 @app.post("/firms/cluster")
 async def firms_cluster(req: FirmsClusterRequest):
@@ -193,24 +248,70 @@ async def firms_cluster(req: FirmsClusterRequest):
     out = [{"lat": pts[c["point_idx"]].lat, "lon": pts[c["point_idx"]].lon, "cluster": c["cluster"], "persistence": c["persistence"]} for c in clusters]
     return {"clusters": out, "n_clusters": cluster_id}
 
+def _f(v: str | None) -> Optional[float]:
+    if v is None or v == "":
+        return None
+    try:
+        return float(v)
+    except ValueError:
+        return None
+
+# NASA FIRMS area API only serves NRT data going back a limited window and
+# caps day_range at 10 for the NRT products (see firms.modaps.eosdis.nasa.gov/api).
+FIRMS_MAX_DAY_RANGE = 10
+
 @app.post("/firms/ingest")
-async def firms_ingest(body: dict):
-    # stub — real ingestion will poll https://firms.modaps.eosdis.nasa.gov/api/area/csv/<KEY>/VIIRS_SNPP_NRT/{bbox}/{date}
-    # Requires FIRMS_MAP_KEY in env; keep offline-safe for PPT
-    key = os.getenv("FIRMS_MAP_KEY") or os.getenv("FIRMS_MAP_KEY".lower())
+async def firms_ingest(req: IngestFirmsRequest):
+    key = os.getenv("FIRMS_MAP_KEY")
     if not key:
-        return {"ok": False, "error": "FIRMS_MAP_KEY not set in .env"}
-    # echo request, actual fetch deferred to iteration 2 where we add geopandas+PostGIS enrichment
-    return {"ok": True, "note": "ingest stub — wire to FIRMS CSV + PostGIS in iteration 2", "request": body, "key_present": True}
+        return IngestFirmsReply(ok=False, error="FIRMS_MAP_KEY not set in .env")
+
+    today = date.today()
+    end = date.fromisoformat(req.date_to) if req.date_to else today
+    start = date.fromisoformat(req.date_from) if req.date_from else end
+    day_range = max(1, min(FIRMS_MAX_DAY_RANGE, (end - start).days + 1))
+
+    bbox = f"{req.min_lon},{req.min_lat},{req.max_lon},{req.max_lat}"
+    url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/VIIRS_SNPP_NRT/{bbox}/{day_range}/{end.isoformat()}"
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(url)
+    except Exception as e:
+        return IngestFirmsReply(ok=False, error=f"FIRMS request failed: {e}")
+    if resp.status_code != 200:
+        return IngestFirmsReply(ok=False, error=f"FIRMS API HTTP {resp.status_code}: {resp.text[:200]}")
+
+    text = resp.text.strip()
+    # FIRMS returns 200 with a plain-text error body for bad key/params/quota
+    if not text or not text[0].isalpha() or "," not in text.splitlines()[0]:
+        return IngestFirmsReply(ok=False, error=f"FIRMS API error: {text[:200]}")
+
+    points: list[FirmsRawPoint] = []
+    for row in csv.DictReader(io.StringIO(text)):
+        try:
+            points.append(FirmsRawPoint(
+                lat=float(row["latitude"]), lon=float(row["longitude"]),
+                acq_date=row.get("acq_date", ""), acq_time=row.get("acq_time", ""),
+                bright_ti4=_f(row.get("bright_ti4")), bright_ti5=_f(row.get("bright_ti5")),
+                frp=_f(row.get("frp")), confidence=row.get("confidence"),
+                satellite=row.get("satellite"), scan=_f(row.get("scan")), track=_f(row.get("track")),
+            ))
+        except (KeyError, ValueError):
+            continue
+    return IngestFirmsReply(ok=True, points=points)
+
+@app.post("/gdelt/label")
+async def gdelt_label(req: GdeltLabelRequest):
+    result = gdelt.label_from_gdelt(req.lat, req.lon, req.date_from, req.date_to)
+    if result is None:
+        return GdeltLabelReply(found=False)
+    return GdeltLabelReply(found=True, **result)
 
 # --- legacy stubs (keep 200 so Go rag client doesn't error during removal) ---
-@app.post("/retrieve")
-async def retrieve(body: Retrieve):
-    return {"sources": []}
-
-@app.post("/ingest")
-async def ingest_legacy(body: Ingest):
-    return {"chunks": 0}
+@app.post("/embed")
+async def embed_endpoint(req: EmbedRequest):
+    return EmbedReply(embedding=embeddings.embed(req.text))
 
 @app.post("/cache_lookup")
 async def cache_lookup(body: CacheLookup):

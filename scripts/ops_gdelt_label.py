@@ -19,6 +19,7 @@ import argparse
 import asyncio
 import os
 import sys
+import time
 import uuid
 from datetime import date, timedelta
 
@@ -80,6 +81,7 @@ async def main() -> int:
             df = (last_seen - timedelta(days=args.pad_days)).isoformat()
             dt_ = (last_seen + timedelta(days=args.pad_days)).isoformat()
             res = await asyncio.to_thread(gdelt.label_from_gdelt, c["lat"], c["lon"], df, dt_)
+            time.sleep(2)  # GDELT DOC burst quota: space clusters out (429s otherwise)
             if res is None:
                 no_match += 1
                 continue

@@ -3,6 +3,7 @@ uvicorn
 httpx
 numpy
 onnxruntime  # CPU inference for firms_classifier.onnx (issue #21); small wheel, no torch link
+onnxscript  # torch.onnx.export backend (train-time); serving never imports it
 asyncpg
 redis
 rasterio

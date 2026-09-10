@@ -35,6 +35,9 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          # default is 10m - too short for a from-scratch Rust release build
+          # on a t3.micro, especially now that it's swap-backed (slower I/O)
+          command_timeout: 40m
           script: |
             set -e
             cd ~/sih-thermal || cd ~/app

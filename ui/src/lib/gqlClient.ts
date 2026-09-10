@@ -151,8 +151,8 @@ export interface FirmsClassification {
 }
 
 export const FIRMS_POINTS_QUERY = `
-  query FirmsPoints($bbox: BoundingBox!, $limit: Int) {
-    firmsPoints(bbox: $bbox, limit: $limit) {
+  query FirmsPoints($bbox: BoundingBox!, $limit: Int, $dateFrom: String, $dateTo: String) {
+    firmsPoints(bbox: $bbox, limit: $limit, dateFrom: $dateFrom, dateTo: $dateTo) {
       id latitude longitude acqDate frp confidence satellite
       distIndustrialM insideIndustrial persistenceScore predictedClass industrialProb clusterId
     }

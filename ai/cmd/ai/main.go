@@ -709,17 +709,14 @@ func (s *server) reclassifyOne(ctx, dctx context.Context, cluster *dbpb.ThermalC
 
 // buildClusterFeatures mirrors train/build_dataset.build_sample exactly:
 // per-point normalized sequence (oldest first, padded) + 9 static aggregates.
-// db zero-values are ambiguous (COALESCE), so unknown distance reads as
-// dist<=0 with inside=false -> treated as far (1.0), never as on-site.
+// Distance uses the stored meters verbatim (min(1, m/20000)) like schema.py:
+// a backfill keeps every row's dist/inside truthful against industrial_sites,
+// so there are no ambiguous zero-values left to special-case (a past
+// special-case here vs none in training caused systematic mis-scores).
 func buildClusterFeatures(members []*dbpb.FirmsPoint, cluster *dbpb.ThermalCluster) (seq [][]float64, mask []bool, static []float64) {
 	normFrp := func(v float64) float64 { return min(1.0, v/200.0) }
 	normTemp := func(v float64) float64 { return min(1.0, max(0.0, (v-270.0)/130.0)) }
-	normDist := func(v float64, inside bool) float64 {
-		if v <= 0 && !inside {
-			return 1.0
-		}
-		return min(1.0, v/20000.0)
-	}
+	normDist := func(v float64) float64 { return min(1.0, v/20000.0) }
 	pts := append([]*dbpb.FirmsPoint(nil), members...)
 	sort.Slice(pts, func(i, j int) bool {
 		if pts[i].GetAcqDate() != pts[j].GetAcqDate() {
@@ -740,7 +737,7 @@ func buildClusterFeatures(members []*dbpb.FirmsPoint, cluster *dbpb.ThermalClust
 				days = min(1.0, d.Sub(f).Hours()/24.0/30.0)
 			}
 		}
-		seq = append(seq, []float64{normFrp(p.GetFrp()), normTemp(p.GetBrightTi4()), normTemp(p.GetBrightTi5()), normDist(p.GetDistIndustrialM(), p.GetInsideIndustrial()), days})
+		seq = append(seq, []float64{normFrp(p.GetFrp()), normTemp(p.GetBrightTi4()), normTemp(p.GetBrightTi5()), normDist(p.GetDistIndustrialM()), days})
 		mask = append(mask, false)
 	}
 	for len(seq) < reclassifySeqLen {
@@ -749,7 +746,7 @@ func buildClusterFeatures(members []*dbpb.FirmsPoint, cluster *dbpb.ThermalClust
 	}
 	var sumDist, sumInside float64
 	for _, p := range members {
-		sumDist += normDist(p.GetDistIndustrialM(), p.GetInsideIndustrial())
+		sumDist += normDist(p.GetDistIndustrialM())
 		if p.GetInsideIndustrial() {
 			sumInside++
 		}

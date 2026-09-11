@@ -134,10 +134,6 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
       };
       window.addEventListener("pointermove", onPointer);
-      cleanups.push(() => {
-        window.removeEventListener("resize", onResize);
-        window.removeEventListener("pointermove", onPointer);
-      });
 
       // --- load models + textures (their manifest) ---
       const [
@@ -385,6 +381,10 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         R.setSize(w, h);
       };
       window.addEventListener("resize", onResize);
+      cleanups.push(() => {
+        window.removeEventListener("resize", onResize);
+        window.removeEventListener("pointermove", onPointer);
+      });
 
       let time = 0;
       const tick = () => {

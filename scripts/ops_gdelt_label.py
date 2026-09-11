@@ -81,6 +81,7 @@ async def main() -> int:
         )
         print(f"found {len(clusters)} thermal clusters in bbox")
         labeled, skipped, no_match = 0, 0, 0
+        fallback = 0
         for c in clusters:
             await ensure_conn()
             n = await conn.fetchval(
@@ -101,6 +102,8 @@ async def main() -> int:
             if res is None:
                 no_match += 1
                 continue
+            if str(res.get("rationale", "")).startswith("keyword-fallback"):
+                fallback += 1
             await conn.execute(
                 """
                 INSERT INTO label_events
@@ -112,7 +115,7 @@ async def main() -> int:
                 res["matched_article_url"], res["matched_article_title"],
             )
             labeled += 1
-        print(f"done: {labeled} labeled, {skipped} already had gdelt label, {no_match} no match")
+        print(f"done: {labeled} labeled ({fallback} keyword-fallback), {skipped} already had gdelt label, {no_match} no match")
         return 0
     finally:
         await conn.close()

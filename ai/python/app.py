@@ -144,6 +144,7 @@ class GdeltLabelReply(BaseModel):
     confidence: float = 0.0
     matched_article_url: str = ""
     matched_article_title: str = ""
+    rationale: str = ""  # llm judge reason or keyword-fallback:<cause>
 
 # --- helpers ---
 def haversine_m(lat1, lon1, lat2, lon2):

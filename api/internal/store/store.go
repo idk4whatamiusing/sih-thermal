@@ -77,6 +77,31 @@ func (s *Store) Del(ctx context.Context, keys ...string) {
 	}
 }
 
+// BustJSONCache drops every generic 7d JSON cache entry (firms points and
+// clusters included). Sessions (session:*) and chat history (chat:*) live
+// under different prefixes and are untouched. Blunt by design: cache keys
+// are content hashes with no bbox tag, so surgical invalidation isn't
+// possible until tag-based invalidation lands. Called after reclassify
+// backfills (rare, manual) - never on the ingest hot path.
+func (s *Store) BustJSONCache(ctx context.Context) int {
+	var cursor uint64
+	n := 0
+	for {
+		keys, next, err := s.rdb.Scan(ctx, cursor, "cache:*", 100).Result()
+		if err != nil {
+			break
+		}
+		if len(keys) > 0 {
+			n += int(s.rdb.Del(ctx, keys...).Val())
+		}
+		cursor = next
+		if cursor == 0 {
+			break
+		}
+	}
+	return n
+}
+
 // ---- chat history fast path: chat:session:{id} ----
 
 type Message struct {

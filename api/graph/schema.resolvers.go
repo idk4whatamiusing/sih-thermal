@@ -265,6 +265,9 @@ func (r *mutationResolver) ReclassifyClusters(ctx context.Context, bbox app.Boun
 	if !rep.Ok {
 		return nil, errors.New(rep.Error)
 	}
+	// Reclassification rewrote stored verdicts, so any cached bbox reads
+	// would serve stale classes for 7d - bust (sessions untouched).
+	r.Store.BustJSONCache(ctx)
 	return &app.ReclassifyResult{
 		Scored: int(rep.ClustersScored), Updated: int(rep.Updated), Held: int(rep.Held), Failed: int(rep.Failed),
 	}, nil

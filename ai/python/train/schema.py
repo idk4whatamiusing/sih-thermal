@@ -17,7 +17,8 @@ LABEL_TO_IDX = {l: i for i, l in enumerate(LABELS)}
 # Independently-sourced labels (gdelt) are weighted higher than
 # model-generated ones (ai_worker, added in Phase 3) to avoid an
 # echo-chamber feedback loop where the model just re-confirms itself.
-SOURCE_WEIGHT = {"gdelt": 1.0, "ai_worker": 0.3}
+# Expert hand labels (human) outrank all: direct annotation, high confidence.
+SOURCE_WEIGHT = {"gdelt": 1.0, "ai_worker": 0.3, "human": 1.5}
 
 
 def normalize_frp(v: float) -> float:

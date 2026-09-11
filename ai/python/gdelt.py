@@ -151,8 +151,10 @@ def judge_with_llm(lat: float, lon: float, date_from: str, date_to: str,
         return None
 
 
-def label_from_gdelt(lat: float, lon: float, date_from: str, date_to: str) -> Optional[GdeltLabel]:
-    fips = _fips_country(lat, lon)
+def label_from_gdelt(lat: float, lon: float, date_from: str, date_to: str,
+                     fips: Optional[str] = None) -> Optional[GdeltLabel]:
+    if fips is None:
+        fips = _fips_country(lat, lon)
     # Broad retrieval: industrial incidents are often reported without the
     # word "fire" (blast, gas leak, refinery). Precision is enforced LATER by
     # the title classifier (keywords now, LLM judge next) - retrieval should

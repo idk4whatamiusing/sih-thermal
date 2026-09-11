@@ -26,6 +26,7 @@ export function ExperienceScroller() {
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const headerProgressRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef({
     target: 0,
     value: 0,
@@ -76,7 +77,11 @@ export function ExperienceScroller() {
         );
       }
 
-      // Chapter + ending derivation
+      // Logo overlay: visible after entering, fades once scrolling starts
+      if (logoRef.current) {
+        const show = s.entered && progress < 0.05;
+        logoRef.current.style.opacity = show ? "1" : "0";
+      }
       let next = s.active;
       let ending = s.ending;
       if (progress >= 0.98) {
@@ -149,7 +154,7 @@ export function ExperienceScroller() {
         </div>
       </header>
       <div className="ox-logo-overlay">
-        <div className={`ox-logo-container ${entered ? "visible" : ""}`}>
+        <div ref={logoRef} className="ox-logo-container" style={{ opacity: 0 }}>
           <Logo />
         </div>
       </div>

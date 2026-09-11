@@ -151,6 +151,8 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         buoyDiffuse,
         gullDiffuse,
         waterDepth,
+        shipDiffuse,
+        shipAO,
         envMap,
         waterNormal,
         markersJson,
@@ -169,12 +171,22 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         loadKtx("/webgl/textures/bouy_diffuse.ktx2", true),
         loadKtx("/webgl/textures/seagull_diffuse.ktx2"),
         loadKtx("/webgl/textures/water-depth-2.ktx2", false, true),
+        Promise.all(
+          ["1001", "1002", "1003", "1004"].map((n) =>
+            loadKtx(`/webgl/textures/ship_Diffuse.${n}.ktx2`, true),
+          ),
+        ),
+        Promise.all(
+          ["1001", "1002", "1003", "1004"].map((n) =>
+            loadKtx(`/webgl/textures/ship_Ambient_Occlusion.${n}.ktx2`, true),
+          ),
+        ),
         loadTex("/webgl/textures/ocean-envmap.jpg"),
         loadTex("/webgl/textures/water-normal.webp"),
         fetch("/webgl/earth_markers.json").then((r) => r.json()),
       ]);
       if (cancelled) return;
-      el.dataset.webgl = "models:17";
+      el.dataset.webgl = "models:25";
 
       envMap.mapping = THREE.EquirectangularReflectionMapping;
       envMap.colorSpace = THREE.SRGBColorSpace;
@@ -317,15 +329,83 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
       });
       tlScene.add(new THREE.Mesh(new THREE.SphereGeometry(200, 32, 32), gradMat));
 
+      // --- sailing-route heightfield: sample land height along z=4 once ---
+      // The ship sails x −90→+30; clamping its y to the terrain keeps it out
+      // of mountainsides without per-frame raycasts.
+      const ROUTE_Z = 4;
+      const ROUTE_MIN = -95;
+      const ROUTE_MAX = 35;
+      const ROUTE_N = 64;
+      const routeHeights = new Float32Array(ROUTE_N + 1);
+      {
+        land.updateMatrixWorld(true);
+        const rc = new THREE.Raycaster();
+        const down = new THREE.Vector3(0, -1, 0);
+        for (let i = 0; i <= ROUTE_N; i++) {
+          const x = ROUTE_MIN + ((ROUTE_MAX - ROUTE_MIN) * i) / ROUTE_N;
+          rc.set(new THREE.Vector3(x, 60, ROUTE_Z), down);
+          const hits = rc.intersectObject(land, true);
+          routeHeights[i] = hits.length ? hits[0].point.y : -0.4;
+        }
+      }
+      const routeHeightAt = (x: number) => {
+        const t = THREE.MathUtils.clamp((x - ROUTE_MIN) / (ROUTE_MAX - ROUTE_MIN), 0, 1) * ROUTE_N;
+        const i = Math.min(Math.floor(t), ROUTE_N - 1);
+        const f = t - i;
+        return routeHeights[i] * (1 - f) + routeHeights[i + 1] * f;
+      };
+
       // ship + buoy
+      // --- ship assembly (their R0.build recipe) ---
+      // name→UDIM tile (node names carry dots: strip them to match)
+      const SHIP_TILES: Record<string, string> = {
+        m_shipbody1004: "1004",
+        anim_bold_1013: "1003",
+        anim_bold_1014: "1002",
+        anim_bold_1015: "1001",
+      };
+      const shipBase = new THREE.MeshStandardMaterial({ aoMapIntensity: 0.9 });
+      applyFogHack(shipBase);
+      ship.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        m.castShadow = true;
+        m.receiveShadow = true;
+        const mat = shipBase.clone() as THREE.MeshStandardMaterial;
+        applyFogHack(mat);
+        const tile = SHIP_TILES[m.name.replace(/\./g, "")];
+        if (tile) {
+          const di = ["1001", "1002", "1003", "1004"].indexOf(tile);
+          const ao = shipAO[di];
+          const map = shipDiffuse[di];
+          ao.channel = 0;
+          mat.aoMap = ao;
+          mat.map = map;
+          mat.envMap = envMap;
+          mat.envMapIntensity = 0.5;
+          mat.needsUpdate = true;
+        }
+        m.material = mat;
+      });
       // ship sails the chapter route (west → east across the island)
-      ship.position.set(-90, 0, 4);
+      ship.scale.setScalar(0.2); // their exact scale — 8.6u hull → ~1.7u
+      ship.position.set(-90, 0.4, 4);
       ship.rotation.y = Math.PI / 2; // bow toward +x travel direction
       tlScene.add(ship);
-      const buoyMesh = buoy.clone();
-      buoyMesh.position.set(-5, 0, 3);
-      tlScene.add(buoyMesh);
 
+      // --- buoy (their diffuse, scaled to sit right vs the ×0.2 ship) ---
+      buoy.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (m.isMesh) {
+          const mat = new THREE.MeshStandardMaterial({ map: buoyDiffuse });
+          applyFogHack(mat);
+          m.material = mat;
+        }
+      });
+      const buoyMesh = buoy.clone();
+      buoyMesh.scale.setScalar(0.35);
+      buoyMesh.position.set(-5, 0.2, 3);
+      tlScene.add(buoyMesh);
       // seagulls x7
       const gulls: THREE.Group[] = [];
       for (let i = 0; i < 7; i++) {
@@ -422,11 +502,12 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         // --- island update ---
         waterNormal.offset.x += dt * 0.008;
         waterNormal.offset.y += dt * 0.004;
-        // --- ship sails through the chapters; camera tracks it ---
+        // --- ship sails through the chapters, clamped above terrain/water ---
         const journey = THREE.MathUtils.clamp((s.value - 0.08) / 0.8, 0, 1);
         const shipX = -90 + journey * 120;
         ship.position.x += (shipX - ship.position.x) * 0.08;
-        ship.position.y = Math.sin(time * 0.7 + 1) * 0.15;
+        const floatY = Math.max(-0.1, routeHeightAt(ship.position.x) + 0.35);
+        ship.position.y += (floatY - ship.position.y) * 0.06;
         ship.rotation.z = Math.sin(time * 0.5) * 0.02;
         buoyMesh.position.y = Math.sin(time * 1.2) * 0.25;
         buoyMesh.rotation.z = Math.sin(time * 0.9) * 0.08;
@@ -454,8 +535,10 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         tlCamPos.y += (scroll.smootherDelta - tlCamPos.x) * 0.1 * normDelta;
         tlLook.x += (scroll.smootherDelta - tlLook.x) * 0.07 * normDelta;
         const sx = ship.position.x;
-        tlCam.position.set(tlCamPos.x + sx + 14, 26 + tlCamPos.y, 30);
-        tlCam.lookAt(tlLook.x + sx, 2, 4);
+        const sy = ship.position.y;
+        // close tracking for the ×0.2 ship (~1.7u): dist ≈ 8.6, ship fills frame
+        tlCam.position.set(tlCamPos.x + sx + 2.8, 5.4 + tlCamPos.y + sy * 0.5, 4 + 6.5);
+        tlCam.lookAt(tlLook.x + sx, 0.6 + sy * 0.5, 4);
 
         // pointer pivot
         pointer.sx += (pointer.x - pointer.sx) * 0.032;

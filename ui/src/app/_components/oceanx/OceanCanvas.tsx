@@ -97,6 +97,7 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
 
       // ================= GLOBE SCENE (intro, fov 22) =================
       const globeScene = new THREE.Scene();
+      globeScene.background = new THREE.Color("#000d15");
       const globeCam = new THREE.PerspectiveCamera(22, W() / H(), 0.5, 500);
       const globeGroup = new THREE.Group();
       globeScene.add(globeGroup);

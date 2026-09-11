@@ -62,20 +62,21 @@
 
 .oceanx-root {
   font-family: "Zeist", ui-sans-serif, system-ui, sans-serif;
-  background-color: var(--ox-bg);
+  /* Transparent: the fixed WebGL canvas (z-index 0) must paint above this
+     root. A background here would bury the canvas (negative/zero z-index
+     children paint below their parent's block background). Scene opacity
+     comes from globeScene/tlScene background colors instead. */
+  background-color: transparent;
   color: var(--ox-text);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  z-index: 0;
 }
 
 .oceanx-root * {
   box-sizing: border-box;
-}
-
-.oceanx-root body {
-  margin: 0;
-  background-color: var(--ox-bg);
 }
 
 .oceanx-mono {
@@ -498,6 +499,8 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: none;
+  position: relative;
+  z-index: 1;
 }
 
 .ox-header-logo {
@@ -1187,7 +1190,7 @@
 .ox-webgl-canvas {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
   width: 100%;
   height: 100%;

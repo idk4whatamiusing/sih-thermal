@@ -326,6 +326,7 @@ impl Db for DbService {
                AND ($5 = '' OR acq_date >= $5::date)
                AND ($6 = '' OR acq_date <= $6::date)
                AND ($7 = '' OR predicted_class = $7)
+               AND ($9 = '' OR cluster_id::text = $9)
              ORDER BY acq_date DESC
              LIMIT $8",
         )
@@ -337,6 +338,7 @@ impl Db for DbService {
         .bind(&r.date_to)
         .bind(&r.predicted_class)
         .bind(limit)
+        .bind(&r.cluster_id)
         .fetch_all(&self.pool)
         .await
         .map_err(db_err)?;

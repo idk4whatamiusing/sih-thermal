@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/idk4whatamiusing/meridian_stack/ai/internal/firms"
@@ -500,7 +502,9 @@ func (s *server) IngestFirms(ctx context.Context, req *aipb.IngestFirmsRequest) 
 	}
 
 	if len(persisted) > 0 {
-		s.clusterAndTag(dctx, persisted)
+		if touched := s.clusterAndTag(dctx, persisted); len(touched) > 0 {
+			s.reclassifyRecords(ctx, dctx, touched)
+		}
 	}
 	return &aipb.IngestFirmsReply{Ok: true, PointsIngested: int32(len(persisted))}, nil
 }
@@ -512,7 +516,7 @@ func (s *server) IngestFirms(ctx context.Context, req *aipb.IngestFirmsRequest) 
 // issue #7: previously nothing called ClusterFirmsPoints during ingest, so
 // firms_points.cluster_id was always null). Best-effort: logs and moves on
 // on any single failure rather than aborting the whole ingest.
-func (s *server) clusterAndTag(ctx context.Context, persisted []persistedFirmsPoint) {
+func (s *server) clusterAndTag(ctx context.Context, persisted []persistedFirmsPoint) []*dbpb.ThermalCluster {
 	byKey := make(map[string]*persistedFirmsPoint, len(persisted))
 	pts := make([]firms.ClusterPoint, len(persisted))
 	for i := range persisted {
@@ -525,7 +529,7 @@ func (s *server) clusterAndTag(ctx context.Context, persisted []persistedFirmsPo
 	crep, err := s.firms.Cluster(firms.ClusterRequest{Points: pts, EpsM: 1000, MinSamples: 2, WindowDays: 30})
 	if err != nil {
 		log.Printf("ingest: cluster: %v", err)
-		return
+		return nil
 	}
 
 	groups := make(map[int][]*persistedFirmsPoint)
@@ -535,15 +539,20 @@ func (s *server) clusterAndTag(ctx context.Context, persisted []persistedFirmsPo
 		}
 		key := fmt.Sprintf("%.6f,%.6f", c.Lat, c.Lon)
 		if p, ok := byKey[key]; ok {
+			// Fold the clusterer's persistence back into the point: at
+			// classify time persistence was still 0 (clustering runs after),
+			// so without this neither points nor clusters ever carry it.
+			p.persistenceScore = c.Persistence
 			groups[c.Cluster] = append(groups[c.Cluster], p)
 		}
 	}
 
+	touched := []*dbpb.ThermalCluster{}
 	for _, members := range groups {
 		if len(members) == 0 {
 			continue
 		}
-		var sumLat, sumLon, sumFrp, maxFrp float64
+		var sumLat, sumLon, sumFrp, maxFrp, maxPers float64
 		classVotes := map[string]int{}
 		minDate, maxDate := members[0].acqDate, members[0].acqDate
 		ids := make([]string, len(members))
@@ -553,6 +562,9 @@ func (s *server) clusterAndTag(ctx context.Context, persisted []persistedFirmsPo
 			sumFrp += m.frp
 			if m.frp > maxFrp {
 				maxFrp = m.frp
+			}
+			if m.persistenceScore > maxPers {
+				maxPers = m.persistenceScore
 			}
 			classVotes[m.predictedClass]++
 			if m.acqDate < minDate {
@@ -572,11 +584,12 @@ func (s *server) clusterAndTag(ctx context.Context, persisted []persistedFirmsPo
 		}
 		clusterID := thermalClusterID(ids)
 
-		_, err := s.db.UpsertThermalCluster(ctx, &dbpb.UpsertThermalClusterRequest{Cluster: &dbpb.ThermalCluster{
+		rec := &dbpb.ThermalCluster{
 			Id: clusterID, CentroidLat: sumLat / n, CentroidLon: sumLon / n, Count: int32(len(members)),
-			AvgFrp: sumFrp / n, MaxFrp: maxFrp, FirstSeen: minDate, LastSeen: maxDate, PredictedClass: majorityClass,
-		}})
-		if err != nil {
+			AvgFrp: sumFrp / n, MaxFrp: maxFrp, Persistence: maxPers,
+			FirstSeen: minDate, LastSeen: maxDate, PredictedClass: majorityClass,
+		}
+		if _, err := s.db.UpsertThermalCluster(ctx, &dbpb.UpsertThermalClusterRequest{Cluster: rec}); err != nil {
 			log.Printf("ingest: upsert thermal cluster: %v", err)
 			continue
 		}
@@ -595,8 +608,173 @@ func (s *server) clusterAndTag(ctx context.Context, persisted []persistedFirmsPo
 		if majorityClass == "unknown" {
 			s.arbitrateCluster(ctx, clusterID, sumLat/n, sumLon/n, sumFrp/n, maxFrp, minDate, maxDate, len(members))
 		}
+		touched = append(touched, rec)
 	}
+	return touched
 }
+
+// Reclassification pass: score clusters on their REAL stored point history
+// (the distribution the ONNX model trained on) instead of the degenerate
+// single-point sequences /firms/predict must use. Gray-zone model verdicts
+// hold stored state; every outcome is logged per cluster.
+const (
+	reclassifyHoldLo = 0.35
+	reclassifyHoldHi = 0.55
+	reclassifySeqLen = 16
+)
+
+func (s *server) ReclassifyClusters(ctx context.Context, req *aipb.ReclassifyClustersRequest) (*aipb.ReclassifyClustersReply, error) {
+	dctx := metadata.AppendToOutgoingContext(ctx, "x-backend-secret", s.dbSecret)
+	crep, err := s.db.ListThermalClusters(dctx, &dbpb.ListThermalClustersRequest{
+		MinLat: req.GetMinLat(), MinLon: req.GetMinLon(), MaxLat: req.GetMaxLat(), MaxLon: req.GetMaxLon(),
+	})
+	if err != nil {
+		return &aipb.ReclassifyClustersReply{Ok: false, Error: err.Error()}, nil
+	}
+	// NOTE: ListThermalClusters caps at 500 rows server-side - bbox-wide
+	// backfills over more clusters need tiling (follow-up, same as ingest).
+	clusters := crep.GetClusters()
+	scored, updated, held, failed := s.reclassifyRecords(ctx, dctx, clusters)
+	return &aipb.ReclassifyClustersReply{Ok: true, ClustersScored: int32(scored), Updated: int32(updated), Held: int32(held), Failed: int32(failed)}, nil
+}
+
+func (s *server) reclassifyRecords(ctx, dctx context.Context, clusters []*dbpb.ThermalCluster) (scored, updated, held, failed int) {
+	for _, cluster := range clusters {
+		switch s.reclassifyOne(ctx, dctx, cluster) {
+		case "updated":
+			scored, updated = scored+1, updated+1
+		case "held":
+			scored, held = scored+1, held+1
+		case "same":
+			scored++
+		default:
+			failed++
+		}
+	}
+	return scored, updated, held, failed
+}
+
+// reclassifyOne fetches a cluster's full member history, scores the real
+// sequence via /firms/reclassify, and persists the verdict unless it lands in
+// the gray zone (then stored state stands and the hold is logged for tuning).
+func (s *server) reclassifyOne(ctx, dctx context.Context, cluster *dbpb.ThermalCluster) string {
+	clusterID := cluster.GetId()
+	mrep, err := s.db.ListFirmsPoints(dctx, &dbpb.ListFirmsPointsRequest{
+		MinLat: -90, MinLon: -180, MaxLat: 90, MaxLon: 180,
+		Limit: 5000, ClusterId: clusterID,
+	})
+	if err != nil {
+		log.Printf("reclassify %s: list members: %v", clusterID, err)
+		return "failed"
+	}
+	if len(mrep.GetPoints()) == 0 {
+		log.Printf("reclassify %s: no member points", clusterID)
+		return "failed"
+	}
+	seq, mask, static := buildClusterFeatures(mrep.GetPoints(), cluster)
+	rrep, err := s.firms.Reclassify(firms.ReclassifyRequest{Seq: seq, SeqMask: mask, Static: static})
+	if err != nil || !rrep.Ok {
+		log.Printf("reclassify %s: sidecar: err=%v reply=%+v", clusterID, err, rrep)
+		return "failed"
+	}
+	if rrep.IndustrialProb >= reclassifyHoldLo && rrep.IndustrialProb <= reclassifyHoldHi {
+		log.Printf("reclassify-held %s: model=%s/%.2f in gray zone, keeping stored %s",
+			clusterID, rrep.PredictedClass, rrep.IndustrialProb, cluster.GetPredictedClass())
+		return "held"
+	}
+	if rrep.PredictedClass == cluster.GetPredictedClass() {
+		return "same"
+	}
+	if _, err := s.db.UpsertThermalCluster(dctx, &dbpb.UpsertThermalClusterRequest{Cluster: &dbpb.ThermalCluster{
+		Id: cluster.GetId(), CentroidLat: cluster.GetCentroidLat(), CentroidLon: cluster.GetCentroidLon(),
+		Count: cluster.GetCount(), AvgFrp: cluster.GetAvgFrp(), MaxFrp: cluster.GetMaxFrp(),
+		Persistence: cluster.GetPersistence(), FirstSeen: cluster.GetFirstSeen(), LastSeen: cluster.GetLastSeen(),
+		PredictedClass: rrep.PredictedClass, OsmId: cluster.GetOsmId(),
+	}}); err != nil {
+		log.Printf("reclassify %s: upsert cluster: %v", clusterID, err)
+		return "failed"
+	}
+	for _, m := range mrep.GetPoints() {
+		if _, err := s.db.UpdateFirmsPointClassification(dctx, &dbpb.UpdateFirmsPointClassificationRequest{
+			Id: m.GetId(), PredictedClass: rrep.PredictedClass, IndustrialProb: rrep.IndustrialProb,
+			PersistenceScore: m.GetPersistenceScore(), DistIndustrialM: m.GetDistIndustrialM(),
+			InsideIndustrial: m.GetInsideIndustrial(), Landcover: m.GetLandcover(), ClusterId: clusterID,
+		}); err != nil {
+			log.Printf("reclassify %s: update point %s: %v", clusterID, m.GetId(), err)
+		}
+	}
+	log.Printf("reclassify-updated %s: %s -> %s (prob %.2f)", clusterID, cluster.GetPredictedClass(), rrep.PredictedClass, rrep.IndustrialProb)
+	return "updated"
+}
+
+// buildClusterFeatures mirrors train/build_dataset.build_sample exactly:
+// per-point normalized sequence (oldest first, padded) + 9 static aggregates.
+// db zero-values are ambiguous (COALESCE), so unknown distance reads as
+// dist<=0 with inside=false -> treated as far (1.0), never as on-site.
+func buildClusterFeatures(members []*dbpb.FirmsPoint, cluster *dbpb.ThermalCluster) (seq [][]float64, mask []bool, static []float64) {
+	normFrp := func(v float64) float64 { return min(1.0, v/200.0) }
+	normTemp := func(v float64) float64 { return min(1.0, max(0.0, (v-270.0)/130.0)) }
+	normDist := func(v float64, inside bool) float64 {
+		if v <= 0 && !inside {
+			return 1.0
+		}
+		return min(1.0, v/20000.0)
+	}
+	pts := append([]*dbpb.FirmsPoint(nil), members...)
+	sort.Slice(pts, func(i, j int) bool {
+		if pts[i].GetAcqDate() != pts[j].GetAcqDate() {
+			return pts[i].GetAcqDate() < pts[j].GetAcqDate()
+		}
+		return pts[i].GetAcqTime() < pts[j].GetAcqTime()
+	})
+	if len(pts) > reclassifySeqLen {
+		pts = pts[:reclassifySeqLen]
+	}
+	firstSeen := cluster.GetFirstSeen()
+	seq = make([][]float64, 0, reclassifySeqLen)
+	mask = make([]bool, 0, reclassifySeqLen)
+	for _, p := range pts {
+		days := 0.0
+		if d, err := time.Parse("2006-01-02", p.GetAcqDate()); err == nil {
+			if f, err := time.Parse("2006-01-02", firstSeen); err == nil {
+				days = min(1.0, d.Sub(f).Hours()/24.0/30.0)
+			}
+		}
+		seq = append(seq, []float64{normFrp(p.GetFrp()), normTemp(p.GetBrightTi4()), normTemp(p.GetBrightTi5()), normDist(p.GetDistIndustrialM(), p.GetInsideIndustrial()), days})
+		mask = append(mask, false)
+	}
+	for len(seq) < reclassifySeqLen {
+		seq = append(seq, []float64{0, 0, 0, 0, 0})
+		mask = append(mask, true)
+	}
+	var sumDist, sumInside float64
+	for _, p := range members {
+		sumDist += normDist(p.GetDistIndustrialM(), p.GetInsideIndustrial())
+		if p.GetInsideIndustrial() {
+			sumInside++
+		}
+	}
+	m := float64(len(members))
+	duration := 0.0
+	month := 1
+	if f, err := time.Parse("2006-01-02", firstSeen); err == nil {
+		month = int(f.Month())
+		if l, err := time.Parse("2006-01-02", cluster.GetLastSeen()); err == nil {
+			duration = min(1.0, l.Sub(f).Hours()/24.0/90.0)
+		}
+	}
+	static = []float64{
+		min(1.0, float64(cluster.GetCount())/50.0),
+		normFrp(cluster.GetAvgFrp()), normFrp(cluster.GetMaxFrp()),
+		cluster.GetPersistence(), duration,
+		sumDist / max(m, 1), sumInside / max(m, 1),
+		sinMonth(month), cosMonth(month),
+	}
+	return seq, mask, static
+}
+
+func sinMonth(month int) float64 { return math.Sin(2 * math.Pi * float64(month) / 12) }
+func cosMonth(month int) float64 { return math.Cos(2 * math.Pi * float64(month) / 12) }
 
 // arbitrateCluster asks the configured LLM provider (Cloudflare Workers AI
 // by default, same integration Chat() already uses - no second LLM

@@ -1230,6 +1230,162 @@ func (x *IngestFirmsReply) GetPointsIngested() int32 {
 	return 0
 }
 
+// Cluster reclassification pass: score clusters on their REAL stored point
+// history (the distribution the model trained on) instead of the degenerate
+// single-point sequences /firms/predict must use. Gray-zone model verdicts
+// hold stored state; everything is best-effort with per-cluster logging.
+type ReclassifyClustersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MinLat        float64                `protobuf:"fixed64,1,opt,name=min_lat,json=minLat,proto3" json:"min_lat,omitempty"`
+	MinLon        float64                `protobuf:"fixed64,2,opt,name=min_lon,json=minLon,proto3" json:"min_lon,omitempty"`
+	MaxLat        float64                `protobuf:"fixed64,3,opt,name=max_lat,json=maxLat,proto3" json:"max_lat,omitempty"`
+	MaxLon        float64                `protobuf:"fixed64,4,opt,name=max_lon,json=maxLon,proto3" json:"max_lon,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReclassifyClustersRequest) Reset() {
+	*x = ReclassifyClustersRequest{}
+	mi := &file_ai_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReclassifyClustersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReclassifyClustersRequest) ProtoMessage() {}
+
+func (x *ReclassifyClustersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReclassifyClustersRequest.ProtoReflect.Descriptor instead.
+func (*ReclassifyClustersRequest) Descriptor() ([]byte, []int) {
+	return file_ai_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ReclassifyClustersRequest) GetMinLat() float64 {
+	if x != nil {
+		return x.MinLat
+	}
+	return 0
+}
+
+func (x *ReclassifyClustersRequest) GetMinLon() float64 {
+	if x != nil {
+		return x.MinLon
+	}
+	return 0
+}
+
+func (x *ReclassifyClustersRequest) GetMaxLat() float64 {
+	if x != nil {
+		return x.MaxLat
+	}
+	return 0
+}
+
+func (x *ReclassifyClustersRequest) GetMaxLon() float64 {
+	if x != nil {
+		return x.MaxLon
+	}
+	return 0
+}
+
+type ReclassifyClustersReply struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Ok             bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	Error          string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	ClustersScored int32                  `protobuf:"varint,3,opt,name=clusters_scored,json=clustersScored,proto3" json:"clusters_scored,omitempty"`
+	Updated        int32                  `protobuf:"varint,4,opt,name=updated,proto3" json:"updated,omitempty"`
+	Held           int32                  `protobuf:"varint,5,opt,name=held,proto3" json:"held,omitempty"` // gray-zone holds (stored verdict kept)
+	Failed         int32                  `protobuf:"varint,6,opt,name=failed,proto3" json:"failed,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ReclassifyClustersReply) Reset() {
+	*x = ReclassifyClustersReply{}
+	mi := &file_ai_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReclassifyClustersReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReclassifyClustersReply) ProtoMessage() {}
+
+func (x *ReclassifyClustersReply) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReclassifyClustersReply.ProtoReflect.Descriptor instead.
+func (*ReclassifyClustersReply) Descriptor() ([]byte, []int) {
+	return file_ai_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ReclassifyClustersReply) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *ReclassifyClustersReply) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *ReclassifyClustersReply) GetClustersScored() int32 {
+	if x != nil {
+		return x.ClustersScored
+	}
+	return 0
+}
+
+func (x *ReclassifyClustersReply) GetUpdated() int32 {
+	if x != nil {
+		return x.Updated
+	}
+	return 0
+}
+
+func (x *ReclassifyClustersReply) GetHeld() int32 {
+	if x != nil {
+		return x.Held
+	}
+	return 0
+}
+
+func (x *ReclassifyClustersReply) GetFailed() int32 {
+	if x != nil {
+		return x.Failed
+	}
+	return 0
+}
+
 var File_ai_proto protoreflect.FileDescriptor
 
 const file_ai_proto_rawDesc = "" +
@@ -1338,7 +1494,19 @@ const file_ai_proto_rawDesc = "" +
 	"\x10IngestFirmsReply\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12'\n" +
-	"\x0fpoints_ingested\x18\x03 \x01(\x05R\x0epointsIngested2\x99\x05\n" +
+	"\x0fpoints_ingested\x18\x03 \x01(\x05R\x0epointsIngested\"\x7f\n" +
+	"\x19ReclassifyClustersRequest\x12\x17\n" +
+	"\amin_lat\x18\x01 \x01(\x01R\x06minLat\x12\x17\n" +
+	"\amin_lon\x18\x02 \x01(\x01R\x06minLon\x12\x17\n" +
+	"\amax_lat\x18\x03 \x01(\x01R\x06maxLat\x12\x17\n" +
+	"\amax_lon\x18\x04 \x01(\x01R\x06maxLon\"\xae\x01\n" +
+	"\x17ReclassifyClustersReply\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\x12'\n" +
+	"\x0fclusters_scored\x18\x03 \x01(\x05R\x0eclustersScored\x12\x18\n" +
+	"\aupdated\x18\x04 \x01(\x05R\aupdated\x12\x12\n" +
+	"\x04held\x18\x05 \x01(\x05R\x04held\x12\x16\n" +
+	"\x06failed\x18\x06 \x01(\x05R\x06failed2\x83\x06\n" +
 	"\x02Ai\x12>\n" +
 	"\x04Chat\x12\x1b.meridian.ai.v1.ChatRequest\x1a\x19.meridian.ai.v1.ChatReply\x12F\n" +
 	"\n" +
@@ -1348,7 +1516,8 @@ const file_ai_proto_rawDesc = "" +
 	"\aPredict\x12\x1e.meridian.ai.v1.PredictRequest\x1a\x1c.meridian.ai.v1.PredictReply\x12h\n" +
 	"\x12ClassifyFirmsPoint\x12).meridian.ai.v1.ClassifyFirmsPointRequest\x1a'.meridian.ai.v1.ClassifyFirmsPointReply\x12h\n" +
 	"\x12ClusterFirmsPoints\x12).meridian.ai.v1.ClusterFirmsPointsRequest\x1a'.meridian.ai.v1.ClusterFirmsPointsReply\x12S\n" +
-	"\vIngestFirms\x12\".meridian.ai.v1.IngestFirmsRequest\x1a .meridian.ai.v1.IngestFirmsReplyB8Z6github.com/idk4whatamiusing/meridian_stack/api/pb/aipbb\x06proto3"
+	"\vIngestFirms\x12\".meridian.ai.v1.IngestFirmsRequest\x1a .meridian.ai.v1.IngestFirmsReply\x12h\n" +
+	"\x12ReclassifyClusters\x12).meridian.ai.v1.ReclassifyClustersRequest\x1a'.meridian.ai.v1.ReclassifyClustersReplyB8Z6github.com/idk4whatamiusing/meridian_stack/api/pb/aipbb\x06proto3"
 
 var (
 	file_ai_proto_rawDescOnce sync.Once
@@ -1362,7 +1531,7 @@ func file_ai_proto_rawDescGZIP() []byte {
 	return file_ai_proto_rawDescData
 }
 
-var file_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_ai_proto_goTypes = []any{
 	(*ChatRequest)(nil),               // 0: meridian.ai.v1.ChatRequest
 	(*Source)(nil),                    // 1: meridian.ai.v1.Source
@@ -1382,6 +1551,8 @@ var file_ai_proto_goTypes = []any{
 	(*ClusterFirmsPointsReply)(nil),   // 15: meridian.ai.v1.ClusterFirmsPointsReply
 	(*IngestFirmsRequest)(nil),        // 16: meridian.ai.v1.IngestFirmsRequest
 	(*IngestFirmsReply)(nil),          // 17: meridian.ai.v1.IngestFirmsReply
+	(*ReclassifyClustersRequest)(nil), // 18: meridian.ai.v1.ReclassifyClustersRequest
+	(*ReclassifyClustersReply)(nil),   // 19: meridian.ai.v1.ReclassifyClustersReply
 }
 var file_ai_proto_depIdxs = []int32{
 	1,  // 0: meridian.ai.v1.ChatReply.sources:type_name -> meridian.ai.v1.Source
@@ -1398,16 +1569,18 @@ var file_ai_proto_depIdxs = []int32{
 	10, // 11: meridian.ai.v1.Ai.ClassifyFirmsPoint:input_type -> meridian.ai.v1.ClassifyFirmsPointRequest
 	13, // 12: meridian.ai.v1.Ai.ClusterFirmsPoints:input_type -> meridian.ai.v1.ClusterFirmsPointsRequest
 	16, // 13: meridian.ai.v1.Ai.IngestFirms:input_type -> meridian.ai.v1.IngestFirmsRequest
-	2,  // 14: meridian.ai.v1.Ai.Chat:output_type -> meridian.ai.v1.ChatReply
-	3,  // 15: meridian.ai.v1.Ai.ChatStream:output_type -> meridian.ai.v1.ChatChunk
-	5,  // 16: meridian.ai.v1.Ai.SupportQuery:output_type -> meridian.ai.v1.SupportChunk
-	7,  // 17: meridian.ai.v1.Ai.Ingest:output_type -> meridian.ai.v1.IngestReply
-	9,  // 18: meridian.ai.v1.Ai.Predict:output_type -> meridian.ai.v1.PredictReply
-	11, // 19: meridian.ai.v1.Ai.ClassifyFirmsPoint:output_type -> meridian.ai.v1.ClassifyFirmsPointReply
-	15, // 20: meridian.ai.v1.Ai.ClusterFirmsPoints:output_type -> meridian.ai.v1.ClusterFirmsPointsReply
-	17, // 21: meridian.ai.v1.Ai.IngestFirms:output_type -> meridian.ai.v1.IngestFirmsReply
-	14, // [14:22] is the sub-list for method output_type
-	6,  // [6:14] is the sub-list for method input_type
+	18, // 14: meridian.ai.v1.Ai.ReclassifyClusters:input_type -> meridian.ai.v1.ReclassifyClustersRequest
+	2,  // 15: meridian.ai.v1.Ai.Chat:output_type -> meridian.ai.v1.ChatReply
+	3,  // 16: meridian.ai.v1.Ai.ChatStream:output_type -> meridian.ai.v1.ChatChunk
+	5,  // 17: meridian.ai.v1.Ai.SupportQuery:output_type -> meridian.ai.v1.SupportChunk
+	7,  // 18: meridian.ai.v1.Ai.Ingest:output_type -> meridian.ai.v1.IngestReply
+	9,  // 19: meridian.ai.v1.Ai.Predict:output_type -> meridian.ai.v1.PredictReply
+	11, // 20: meridian.ai.v1.Ai.ClassifyFirmsPoint:output_type -> meridian.ai.v1.ClassifyFirmsPointReply
+	15, // 21: meridian.ai.v1.Ai.ClusterFirmsPoints:output_type -> meridian.ai.v1.ClusterFirmsPointsReply
+	17, // 22: meridian.ai.v1.Ai.IngestFirms:output_type -> meridian.ai.v1.IngestFirmsReply
+	19, // 23: meridian.ai.v1.Ai.ReclassifyClusters:output_type -> meridian.ai.v1.ReclassifyClustersReply
+	15, // [15:24] is the sub-list for method output_type
+	6,  // [6:15] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -1426,7 +1599,7 @@ func file_ai_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_proto_rawDesc), len(file_ai_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

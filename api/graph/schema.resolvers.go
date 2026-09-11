@@ -251,6 +251,25 @@ func (r *mutationResolver) IngestFirms(ctx context.Context, bbox app.BoundingBox
 	return int(rep.PointsIngested), nil
 }
 
+func (r *mutationResolver) ReclassifyClusters(ctx context.Context, bbox app.BoundingBox) (*app.ReclassifyResult, error) {
+	user := oauth.UserID(ctx)
+	if user == "" {
+		return nil, errUnauthorized
+	}
+	rep, err := r.Clients.Ai.ReclassifyClusters(r.Clients.Ctx(ctx), &aipb.ReclassifyClustersRequest{
+		MinLat: bbox.MinLat, MinLon: bbox.MinLon, MaxLat: bbox.MaxLat, MaxLon: bbox.MaxLon,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !rep.Ok {
+		return nil, errors.New(rep.Error)
+	}
+	return &app.ReclassifyResult{
+		Scored: int(rep.ClustersScored), Updated: int(rep.Updated), Held: int(rep.Held), Failed: int(rep.Failed),
+	}, nil
+}
+
 // ---- queries ----
 
 func (r *queryResolver) Me(ctx context.Context) (*app.User, error) {

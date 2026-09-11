@@ -162,6 +162,7 @@ message ListFirmsPointsRequest {
   string date_to = 6;          // YYYY-MM-DD, "" = no upper bound
   string predicted_class = 7;  // "" = all classes
   int32 limit = 8;             // 0 = server default (500), clamped to 5000
+  string cluster_id = 9;       // "" = all clusters; set = member lookup for reclassification
 }
 message ListFirmsPointsReply {
   repeated FirmsPoint points = 1;

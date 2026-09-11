@@ -105,6 +105,7 @@ type ComplexityRoot struct {
 		IngestSupport                  func(childComplexity int, documents []string) int
 		Login                          func(childComplexity int, email string) int
 		Logout                         func(childComplexity int) int
+		ReclassifyClusters             func(childComplexity int, bbox api.BoundingBox) int
 		RenameSession                  func(childComplexity int, id string, title string) int
 		SupportQuery                   func(childComplexity int, message string) int
 		UpdateFirmsPointClassification func(childComplexity int, id string, predictedClass string, industrialProb float64, persistenceScore float64, distIndustrialM float64, insideIndustrial bool, landcover int, clusterID *string) int
@@ -119,6 +120,13 @@ type ComplexityRoot struct {
 		Me              func(childComplexity int) int
 		ThermalClusters func(childComplexity int, bbox api.BoundingBox) int
 		Users           func(childComplexity int, limit *int) int
+	}
+
+	ReclassifyResult struct {
+		Failed  func(childComplexity int) int
+		Held    func(childComplexity int) int
+		Scored  func(childComplexity int) int
+		Updated func(childComplexity int) int
 	}
 
 	Source struct {
@@ -172,6 +180,7 @@ type MutationResolver interface {
 	UpdateFirmsPointClassification(ctx context.Context, id string, predictedClass string, industrialProb float64, persistenceScore float64, distIndustrialM float64, insideIndustrial bool, landcover int, clusterID *string) (bool, error)
 	ClassifyFirmsPoint(ctx context.Context, input api.ClassifyFirmsPointInput) (*api.FirmsClassification, error)
 	IngestFirms(ctx context.Context, bbox api.BoundingBox, dateFrom string, dateTo string, source *string) (int, error)
+	ReclassifyClusters(ctx context.Context, bbox api.BoundingBox) (*api.ReclassifyResult, error)
 }
 type QueryResolver interface {
 	Me(ctx context.Context) (*api.User, error)
@@ -540,6 +549,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.Logout(childComplexity), true
+	case "Mutation.reclassifyClusters":
+		if e.ComplexityRoot.Mutation.ReclassifyClusters == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_reclassifyClusters_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ReclassifyClusters(childComplexity, args["bbox"].(api.BoundingBox)), true
 	case "Mutation.renameSession":
 		if e.ComplexityRoot.Mutation.RenameSession == nil {
 			break
@@ -648,6 +668,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Users(childComplexity, args["limit"].(*int)), true
+
+	case "ReclassifyResult.failed":
+		if e.ComplexityRoot.ReclassifyResult.Failed == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ReclassifyResult.Failed(childComplexity), true
+	case "ReclassifyResult.held":
+		if e.ComplexityRoot.ReclassifyResult.Held == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ReclassifyResult.Held(childComplexity), true
+	case "ReclassifyResult.scored":
+		if e.ComplexityRoot.ReclassifyResult.Scored == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ReclassifyResult.Scored(childComplexity), true
+	case "ReclassifyResult.updated":
+		if e.ComplexityRoot.ReclassifyResult.Updated == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ReclassifyResult.Updated(childComplexity), true
 
 	case "Source.id":
 		if e.ComplexityRoot.Source.ID == nil {
@@ -1019,6 +1064,20 @@ func (ec *executionContext) childFields_Message(ctx context.Context, field graph
 	return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 }
 
+func (ec *executionContext) childFields_ReclassifyResult(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "scored":
+		return ec.fieldContext_ReclassifyResult_scored(ctx, field)
+	case "updated":
+		return ec.fieldContext_ReclassifyResult_updated(ctx, field)
+	case "held":
+		return ec.fieldContext_ReclassifyResult_held(ctx, field)
+	case "failed":
+		return ec.fieldContext_ReclassifyResult_failed(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type ReclassifyResult", field.Name)
+}
+
 func (ec *executionContext) childFields_Source(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "id":
@@ -1336,6 +1395,20 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 		return nil, err
 	}
 	args["email"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_reclassifyClusters_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bbox",
+		func(ctx context.Context, v any) (api.BoundingBox, error) {
+			return ec.unmarshalNBoundingBox2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐBoundingBox(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["bbox"] = arg0
 	return args, nil
 }
 
@@ -3140,6 +3213,50 @@ func (ec *executionContext) fieldContext_Mutation_ingestFirms(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_reclassifyClusters(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_reclassifyClusters(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ReclassifyClusters(ctx, fc.Args["bbox"].(api.BoundingBox))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *api.ReclassifyResult) graphql.Marshaler {
+			return ec.marshalNReclassifyResult2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐReclassifyResult(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_reclassifyClusters(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ReclassifyResult(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_reclassifyClusters_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3477,6 +3594,98 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _ReclassifyResult_scored(ctx context.Context, field graphql.CollectedField, obj *api.ReclassifyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ReclassifyResult_scored(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Scored, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ReclassifyResult_scored(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ReclassifyResult", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _ReclassifyResult_updated(ctx context.Context, field graphql.CollectedField, obj *api.ReclassifyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ReclassifyResult_updated(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Updated, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ReclassifyResult_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ReclassifyResult", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _ReclassifyResult_held(ctx context.Context, field graphql.CollectedField, obj *api.ReclassifyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ReclassifyResult_held(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Held, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ReclassifyResult_held(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ReclassifyResult", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _ReclassifyResult_failed(ctx context.Context, field graphql.CollectedField, obj *api.ReclassifyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ReclassifyResult_failed(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Failed, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ReclassifyResult_failed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ReclassifyResult", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Source_id(ctx context.Context, field graphql.CollectedField, obj *api.Source) (ret graphql.Marshaler) {
@@ -5817,6 +6026,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "reclassifyClusters":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_reclassifyClusters(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6025,6 +6241,59 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			})
 			if out.Values[i] == graphql.RequiredNull {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var reclassifyResultImplementors = []string{"ReclassifyResult"}
+
+func (ec *executionContext) _ReclassifyResult(ctx context.Context, sel ast.SelectionSet, obj *api.ReclassifyResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, reclassifyResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ReclassifyResult")
+		case "scored":
+			out.Values[i] = ec._ReclassifyResult_scored(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updated":
+			out.Values[i] = ec._ReclassifyResult_updated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "held":
+			out.Values[i] = ec._ReclassifyResult_held(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "failed":
+			out.Values[i] = ec._ReclassifyResult_failed(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -6848,6 +7117,20 @@ func (ec *executionContext) marshalNMessage2ᚖgithubᚗcomᚋidk4whatamiusing�
 		return graphql.Null
 	}
 	return ec._Message(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNReclassifyResult2githubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐReclassifyResult(ctx context.Context, sel ast.SelectionSet, v api.ReclassifyResult) graphql.Marshaler {
+	return ec._ReclassifyResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNReclassifyResult2ᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐReclassifyResult(ctx context.Context, sel ast.SelectionSet, v *api.ReclassifyResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ReclassifyResult(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNSource2ᚕᚖgithubᚗcomᚋidk4whatamiusingᚋmeridian_stackᚋapiᚐSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*api.Source) graphql.Marshaler {

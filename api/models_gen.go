@@ -102,6 +102,13 @@ type Mutation struct {
 type Query struct {
 }
 
+type ReclassifyResult struct {
+	Scored  int `json:"scored"`
+	Updated int `json:"updated"`
+	Held    int `json:"held"`
+	Failed  int `json:"failed"`
+}
+
 type Source struct {
 	ID    string  `json:"id"`
 	Title *string `json:"title,omitempty"`

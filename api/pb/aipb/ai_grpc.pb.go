@@ -27,6 +27,7 @@ const (
 	Ai_ClassifyFirmsPoint_FullMethodName = "/meridian.ai.v1.Ai/ClassifyFirmsPoint"
 	Ai_ClusterFirmsPoints_FullMethodName = "/meridian.ai.v1.Ai/ClusterFirmsPoints"
 	Ai_IngestFirms_FullMethodName        = "/meridian.ai.v1.Ai/IngestFirms"
+	Ai_ReclassifyClusters_FullMethodName = "/meridian.ai.v1.Ai/ReclassifyClusters"
 )
 
 // AiClient is the client API for Ai service.
@@ -48,6 +49,7 @@ type AiClient interface {
 	ClassifyFirmsPoint(ctx context.Context, in *ClassifyFirmsPointRequest, opts ...grpc.CallOption) (*ClassifyFirmsPointReply, error)
 	ClusterFirmsPoints(ctx context.Context, in *ClusterFirmsPointsRequest, opts ...grpc.CallOption) (*ClusterFirmsPointsReply, error)
 	IngestFirms(ctx context.Context, in *IngestFirmsRequest, opts ...grpc.CallOption) (*IngestFirmsReply, error)
+	ReclassifyClusters(ctx context.Context, in *ReclassifyClustersRequest, opts ...grpc.CallOption) (*ReclassifyClustersReply, error)
 }
 
 type aiClient struct {
@@ -156,6 +158,16 @@ func (c *aiClient) IngestFirms(ctx context.Context, in *IngestFirmsRequest, opts
 	return out, nil
 }
 
+func (c *aiClient) ReclassifyClusters(ctx context.Context, in *ReclassifyClustersRequest, opts ...grpc.CallOption) (*ReclassifyClustersReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReclassifyClustersReply)
+	err := c.cc.Invoke(ctx, Ai_ReclassifyClusters_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AiServer is the server API for Ai service.
 // All implementations must embed UnimplementedAiServer
 // for forward compatibility.
@@ -175,6 +187,7 @@ type AiServer interface {
 	ClassifyFirmsPoint(context.Context, *ClassifyFirmsPointRequest) (*ClassifyFirmsPointReply, error)
 	ClusterFirmsPoints(context.Context, *ClusterFirmsPointsRequest) (*ClusterFirmsPointsReply, error)
 	IngestFirms(context.Context, *IngestFirmsRequest) (*IngestFirmsReply, error)
+	ReclassifyClusters(context.Context, *ReclassifyClustersRequest) (*ReclassifyClustersReply, error)
 	mustEmbedUnimplementedAiServer()
 }
 
@@ -208,6 +221,9 @@ func (UnimplementedAiServer) ClusterFirmsPoints(context.Context, *ClusterFirmsPo
 }
 func (UnimplementedAiServer) IngestFirms(context.Context, *IngestFirmsRequest) (*IngestFirmsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method IngestFirms not implemented")
+}
+func (UnimplementedAiServer) ReclassifyClusters(context.Context, *ReclassifyClustersRequest) (*ReclassifyClustersReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReclassifyClusters not implemented")
 }
 func (UnimplementedAiServer) mustEmbedUnimplementedAiServer() {}
 func (UnimplementedAiServer) testEmbeddedByValue()            {}
@@ -360,6 +376,24 @@ func _Ai_IngestFirms_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Ai_ReclassifyClusters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReclassifyClustersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AiServer).ReclassifyClusters(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Ai_ReclassifyClusters_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AiServer).ReclassifyClusters(ctx, req.(*ReclassifyClustersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Ai_ServiceDesc is the grpc.ServiceDesc for Ai service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -390,6 +424,10 @@ var Ai_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "IngestFirms",
 			Handler:    _Ai_IngestFirms_Handler,
+		},
+		{
+			MethodName: "ReclassifyClusters",
+			Handler:    _Ai_ReclassifyClusters_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

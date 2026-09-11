@@ -40,6 +40,8 @@ async def main() -> int:
     ap.add_argument("--max-lon", type=float, default=70.5)
     ap.add_argument("--pad-days", type=int, default=3)
     ap.add_argument("--limit", type=int, default=500)
+    ap.add_argument("--fips", default="",
+                    help="skip Nominatim reverse-geocode and use this FIPS country for all clusters (e.g. IN for India runs: faster, no Nominatim quota)")
     args = ap.parse_args()
     if not args.database_url:
         print("DATABASE_URL not set", file=sys.stderr)
@@ -84,10 +86,21 @@ async def main() -> int:
         fallback = 0
         for c in clusters:
             await ensure_conn()
-            n = await conn.fetchval(
-                "SELECT count(*) FROM label_events WHERE cluster_id = $1 AND source = 'gdelt'",
-                c["id"],
-            )
+            try:
+                n = await conn.fetchval(
+                    "SELECT count(*) FROM label_events WHERE cluster_id = $1 AND source = 'gdelt'",
+                    c["id"],
+                )
+            except Exception:  # noqa: BLE001 - dropped mid-iteration (deploy restart): reconnect once
+                await ensure_conn()
+                try:
+                    n = await conn.fetchval(
+                        "SELECT count(*) FROM label_events WHERE cluster_id = $1 AND source = 'gdelt'",
+                        c["id"],
+                    )
+                except Exception:  # noqa: BLE001 - still down, skip cluster (idempotent resume)
+                    no_match += 1
+                    continue
             if n:
                 skipped += 1
                 continue
@@ -97,23 +110,50 @@ async def main() -> int:
                 continue
             df = (last_seen - timedelta(days=args.pad_days)).isoformat()
             dt_ = (last_seen + timedelta(days=args.pad_days)).isoformat()
-            res = await asyncio.to_thread(gdelt.label_from_gdelt, c["lat"], c["lon"], df, dt_)
+            res = await asyncio.to_thread(gdelt.label_from_gdelt, c["lat"], c["lon"], df, dt_,
+                                            args.fips or None)
             time.sleep(2)  # GDELT DOC burst quota: space clusters out (429s otherwise)
             if res is None:
                 no_match += 1
                 continue
             if str(res.get("rationale", "")).startswith("keyword-fallback"):
                 fallback += 1
-            await conn.execute(
-                """
-                INSERT INTO label_events
-                  (id, cluster_id, source, label, confidence,
-                   matched_article_url, matched_article_title)
-                VALUES ($1, $2, 'gdelt', $3, $4, $5, $6)
-                """,
-                uuid.uuid4(), c["id"], res["label"], res["confidence"],
-                res["matched_article_url"], res["matched_article_title"],
-            )
+            try:
+                await conn.execute(
+                    """
+                    INSERT INTO label_events
+                      (id, cluster_id, source, label, confidence,
+                       matched_article_url, matched_article_title)
+                    VALUES ($1, $2, 'gdelt', $3, $4, $5, $6)
+                    """,
+                    uuid.uuid4(), c["id"], res["label"], res["confidence"],
+                    res["matched_article_url"], res["matched_article_title"],
+                )
+            except Exception:  # noqa: BLE001 - deploy restart mid-write: reconnect, retry once
+                await ensure_conn()
+                try:
+                    # first write may have committed before the drop - re-check
+                    again = await conn.fetchval(
+                        "SELECT count(*) FROM label_events WHERE cluster_id = $1 AND source = 'gdelt'",
+                        c["id"],
+                    )
+                    if not again:
+                        await conn.execute(
+                            """
+                            INSERT INTO label_events
+                              (id, cluster_id, source, label, confidence,
+                               matched_article_url, matched_article_title)
+                            VALUES ($1, $2, 'gdelt', $3, $4, $5, $6)
+                            """,
+                            uuid.uuid4(), c["id"], res["label"], res["confidence"],
+                            res["matched_article_url"], res["matched_article_title"],
+                        )
+                    else:
+                        skipped += 1
+                        continue
+                except Exception:  # noqa: BLE001
+                    no_match += 1
+                    continue
             labeled += 1
         print(f"done: {labeled} labeled ({fallback} keyword-fallback), {skipped} already had gdelt label, {no_match} no match")
         return 0

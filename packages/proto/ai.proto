@@ -22,6 +22,7 @@ service Ai {
   rpc ClassifyFirmsPoint(ClassifyFirmsPointRequest) returns (ClassifyFirmsPointReply);
   rpc ClusterFirmsPoints(ClusterFirmsPointsRequest) returns (ClusterFirmsPointsReply);
   rpc IngestFirms(IngestFirmsRequest) returns (IngestFirmsReply);
+  rpc ReclassifyClusters(ReclassifyClustersRequest) returns (ReclassifyClustersReply);
 }
 
 message ChatRequest {
@@ -149,4 +150,23 @@ message IngestFirmsReply {
   bool ok = 1;
   string error = 2;
   int32 points_ingested = 3; // count of raw points fetched, enriched, classified and persisted
+}
+
+// Cluster reclassification pass: score clusters on their REAL stored point
+// history (the distribution the model trained on) instead of the degenerate
+// single-point sequences /firms/predict must use. Gray-zone model verdicts
+// hold stored state; everything is best-effort with per-cluster logging.
+message ReclassifyClustersRequest {
+  double min_lat = 1;
+  double min_lon = 2;
+  double max_lat = 3;
+  double max_lon = 4;
+}
+message ReclassifyClustersReply {
+  bool ok = 1;
+  string error = 2;
+  int32 clusters_scored = 3;
+  int32 updated = 4;
+  int32 held = 5;   // gray-zone holds (stored verdict kept)
+  int32 failed = 6;
 }

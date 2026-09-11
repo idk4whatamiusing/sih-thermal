@@ -1295,6 +1295,7 @@ type ListFirmsPointsRequest struct {
 	DateTo         string                 `protobuf:"bytes,6,opt,name=date_to,json=dateTo,proto3" json:"date_to,omitempty"`                         // YYYY-MM-DD, "" = no upper bound
 	PredictedClass string                 `protobuf:"bytes,7,opt,name=predicted_class,json=predictedClass,proto3" json:"predicted_class,omitempty"` // "" = all classes
 	Limit          int32                  `protobuf:"varint,8,opt,name=limit,proto3" json:"limit,omitempty"`                                        // 0 = server default (500), clamped to 5000
+	ClusterId      string                 `protobuf:"bytes,9,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`                // "" = all clusters; set = member lookup for reclassification
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1383,6 +1384,13 @@ func (x *ListFirmsPointsRequest) GetLimit() int32 {
 		return x.Limit
 	}
 	return 0
+}
+
+func (x *ListFirmsPointsRequest) GetClusterId() string {
+	if x != nil {
+		return x.ClusterId
+	}
+	return ""
 }
 
 type ListFirmsPointsReply struct {
@@ -2858,7 +2866,7 @@ const file_db_proto_rawDesc = "" +
 	"\x17UpsertFirmsPointRequest\x120\n" +
 	"\x05point\x18\x01 \x01(\v2\x1a.meridian.db.v1.FirmsPointR\x05point\"'\n" +
 	"\x15UpsertFirmsPointReply\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xf1\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x90\x02\n" +
 	"\x16ListFirmsPointsRequest\x12\x17\n" +
 	"\amin_lat\x18\x01 \x01(\x01R\x06minLat\x12\x17\n" +
 	"\amin_lon\x18\x02 \x01(\x01R\x06minLon\x12\x17\n" +
@@ -2867,7 +2875,9 @@ const file_db_proto_rawDesc = "" +
 	"\tdate_from\x18\x05 \x01(\tR\bdateFrom\x12\x17\n" +
 	"\adate_to\x18\x06 \x01(\tR\x06dateTo\x12'\n" +
 	"\x0fpredicted_class\x18\a \x01(\tR\x0epredictedClass\x12\x14\n" +
-	"\x05limit\x18\b \x01(\x05R\x05limit\"J\n" +
+	"\x05limit\x18\b \x01(\x05R\x05limit\x12\x1d\n" +
+	"\n" +
+	"cluster_id\x18\t \x01(\tR\tclusterId\"J\n" +
 	"\x14ListFirmsPointsReply\x122\n" +
 	"\x06points\x18\x01 \x03(\v2\x1a.meridian.db.v1.FirmsPointR\x06points\"\xcc\x02\n" +
 	"%UpdateFirmsPointClassificationRequest\x12\x0e\n" +

@@ -91,6 +91,25 @@ func (c *Client) Cluster(req ClusterRequest) (ClusterReply, error) {
 	return out, err
 }
 
+type ReclassifyRequest struct {
+	Seq     [][]float64 `json:"seq"`
+	SeqMask []bool      `json:"seq_mask"`
+	Static  []float64   `json:"static"`
+}
+
+type ReclassifyReply struct {
+	Ok             bool    `json:"ok"`
+	Error          string  `json:"error"`
+	PredictedClass string  `json:"predicted_class"`
+	IndustrialProb float64 `json:"industrial_prob"`
+}
+
+func (c *Client) Reclassify(req ReclassifyRequest) (ReclassifyReply, error) {
+	var out ReclassifyReply
+	err := c.post("/firms/reclassify", req, &out)
+	return out, err
+}
+
 type IngestRequest struct {
 	MinLat   float64 `json:"min_lat"`
 	MinLon   float64 `json:"min_lon"`

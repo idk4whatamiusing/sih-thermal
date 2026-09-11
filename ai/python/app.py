@@ -1,6 +1,7 @@
 """PS162 Python sidecar — FIRMS thermal classifier + embeddings.
 
   POST /firms/predict  {lat, lon, frp, bright_ti4, ...} -> {predicted_class, industrial_prob, persistence}
+  POST /firms/reclassify {seq, seq_mask, static} -> full-sequence cluster verdict (reclassification pass)
   POST /firms/ingest   {bbox, date_from, date_to} -> ingests FIRMS CSV (requires FIRMS_MAP_KEY)
   POST /firms/cluster  {points: [...]}  -> DBSCAN persistence scoring
   POST /gdelt/label    {lat, lon, date_from, date_to} -> independent weak label from GDELT news
@@ -84,12 +85,25 @@ class FirmsClusterPoint(BaseModel):
     lat: float
     lon: float
     frp: Optional[float] = None
-
 class FirmsClusterRequest(BaseModel):
     points: list[FirmsClusterPoint]
     eps_m: float = 1000  # DBSCAN eps in meters approx
     min_samples: int = 3
     window_days: int = 30
+
+class FirmsReclassifyRequest(BaseModel):
+    # Full cluster history in build_dataset.build_sample shape (normalized):
+    # seq = MAX_SEQ_LEN(16) x 5 [frp, bright_ti4, bright_ti5, dist_industrial_m, days_since_first/30],
+    # seq_mask False = real step / True = padding, static = 9 aggregates.
+    seq: list[list[float]]
+    seq_mask: list[bool]
+    static: list[float]
+
+class FirmsReclassifyReply(BaseModel):
+    ok: bool
+    error: str = ""
+    predicted_class: str = ""
+    industrial_prob: float = 0.0
 
 class IngestFirmsRequest(BaseModel):
     min_lat: float
@@ -270,6 +284,21 @@ async def firms_cluster(req: FirmsClusterRequest):
     # map back
     out = [{"lat": pts[c["point_idx"]].lat, "lon": pts[c["point_idx"]].lon, "cluster": c["cluster"], "persistence": c["persistence"]} for c in clusters]
     return {"clusters": out, "n_clusters": cluster_id}
+
+@app.post("/firms/reclassify")
+async def firms_reclassify(req: FirmsReclassifyRequest):
+    """Full-sequence cluster verdict (reclassification pass). Unlike
+    /firms/predict (single point, degenerate sequence), the caller supplies a
+    real cluster history - the same distribution the model trained on.
+    Returns ok=False (never raises) when no checkpoint is loaded."""
+    clf = onnx_infer.OnnxClassifier.get()
+    if clf is None:
+        return FirmsReclassifyReply(ok=False, error="no ONNX checkpoint loaded")
+    try:
+        clazz, prob = clf.predict_sequence(req.seq, req.seq_mask, req.static)
+    except Exception as e:
+        return FirmsReclassifyReply(ok=False, error=f"inference failed: {e}")
+    return FirmsReclassifyReply(ok=True, predicted_class=clazz, industrial_prob=prob)
 
 def _f(v: str | None) -> Optional[float]:
     if v is None or v == "":

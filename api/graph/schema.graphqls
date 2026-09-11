@@ -103,6 +103,13 @@ type FirmsClassification {
   similarCases: [Source!]!
 }
 
+type ReclassifyResult {
+  scored: Int!
+  updated: Int!
+  held: Int!
+  failed: Int!
+}
+
 input ClassifyFirmsPointInput {
   lat: Float!
   lon: Float!
@@ -155,6 +162,9 @@ type Mutation {
   # returns the number of points fetched/enriched/classified/persisted
   # source: FIRMS product (VIIRS_SNPP_NRT default | VIIRS_NOAA20_NRT | VIIRS_NOAA21_NRT | MODIS_NRT), "" = default
   ingestFirms(bbox: BoundingBox!, dateFrom: String!, dateTo: String!, source: String): Int!
+  # re-scores clusters in a bbox on their real stored history via /firms/reclassify
+  # (gray-zone verdicts hold stored state); new ingests already do this per touched cluster
+  reclassifyClusters(bbox: BoundingBox!): ReclassifyResult!
 }
 
 type Subscription {

@@ -1,20 +1,16 @@
 import type { ReactNode } from "react";
 
-import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { APP_CONFIG } from "@/config/app-config";
-import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { fontVars } from "@/lib/fonts/registry";
 import { PREFERENCE_DEFAULTS } from "@/lib/preferences/preferences-config";
 import { ThemeBootScript } from "@/scripts/theme-boot";
-import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: APP_CONFIG.meta.title,
   description: APP_CONFIG.meta.description,
 };
@@ -38,18 +34,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         {/* Applies theme and layout preferences on load to avoid flicker and unnecessary server rerenders. */}
         <ThemeBootScript />
       </head>
-      <body className={`${fontVars} min-h-screen antialiased`}>
-        <TooltipProvider>
-          <PreferencesStoreProvider initialValues={PREFERENCE_DEFAULTS}>
-            <AuthProvider>
-              {children}
-              <Toaster />
-            </AuthProvider>
-          </PreferencesStoreProvider>
-        </TooltipProvider>
-        {/* Used for this project's hosted demo. Feel free to remove it; it is not required for template functionality. */}
-        <Analytics />
-      </body>
+      {/* Bare body: the OceanX landing at / renders fullscreen here.
+          Dashboard providers live in (main)/layout.tsx so they never wrap the landing. */}
+      <body className={`${fontVars} antialiased`}>{children}</body>
     </html>
   );
 }

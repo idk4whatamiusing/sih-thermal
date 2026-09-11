@@ -103,7 +103,7 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
       const globeCam = new THREE.PerspectiveCamera(22, W() / H(), 0.5, 500);
       const globeGroup = new THREE.Group();
       globeScene.add(globeGroup);
-      const globeCamPos = new THREE.Vector3(0, 0, 20);
+      const globeCamPos = new THREE.Vector3(0, 0, 6.5);
       const globeLook = new THREE.Vector3(0, 0, 0);
 
       const globeDir = new THREE.DirectionalLight("#b8cadf", 2.3);
@@ -114,7 +114,7 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
       const tlScene = new THREE.Scene();
       tlScene.background = new THREE.Color("#001224");
       const tlCam = new THREE.PerspectiveCamera(10, W() / H(), 0.5, 500);
-      const tlCamPos = new THREE.Vector3(0, 30, 15);
+      const tlCamPos = new THREE.Vector3(0, 0, 0); // scroll-drift offsets only
       const tlLook = new THREE.Vector3(0, 0, 0);
 
       const tlDir = new THREE.DirectionalLight(0xffffff, 5);
@@ -299,9 +299,9 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         envMapIntensity: 0.8,
       });
       applyFogHack(waterMat);
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), waterMat);
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(300, 160), waterMat);
       water.rotation.x = -Math.PI / 2;
-      water.position.y = -0.4;
+      water.position.set(-40, -0.4, 10);
       tlScene.add(water);
 
       // water gradient dome backdrop
@@ -319,7 +319,9 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
       tlScene.add(new THREE.Mesh(new THREE.SphereGeometry(200, 32, 32), gradMat));
 
       // ship + buoy
-      ship.position.set(6, 0, 4);
+      // ship sails the chapter route (west → east across the island)
+      ship.position.set(-90, 0, 4);
+      ship.rotation.y = Math.PI / 2; // bow toward +x travel direction
       tlScene.add(ship);
       const buoyMesh = buoy.clone();
       buoyMesh.position.set(-5, 0, 3);
@@ -361,7 +363,7 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
             blending: THREE.AdditiveBlending,
           }),
         );
-        m.position.set(-30 + i * 7 + Math.random() * 3, 14 + Math.random() * 8, -25 - Math.random() * 10);
+        m.position.set(-105 + i * 16 + Math.random() * 3, 14 + Math.random() * 8, -25 - Math.random() * 10);
         cloudBillboards.push(m);
         tlScene.add(m);
       });
@@ -400,8 +402,8 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         scroll.delta += (0 - scroll.delta) * 0.01 * normDelta;
         scroll.smootherDelta += (scroll.delta - scroll.smootherDelta) * 0.03 * normDelta;
 
-        // --- phase: globe → island crossfade on progress ---
-        const target = s.entered && s.value > 0.1 ? 0 : 1;
+        // --- phase: globe → island crossfade just after entering ---
+        const target = s.entered && s.value > 0.02 ? 0 : 1;
         globeWeight += (target - globeWeight) * 0.04;
 
         // --- globe update ---
@@ -417,23 +419,30 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         // --- island update ---
         waterNormal.offset.x += dt * 0.008;
         waterNormal.offset.y += dt * 0.004;
+        // --- ship sails through the chapters; camera tracks it ---
+        const journey = THREE.MathUtils.clamp((s.value - 0.08) / 0.8, 0, 1);
+        const shipX = -90 + journey * 120;
+        ship.position.x += (shipX - ship.position.x) * 0.08;
+        ship.position.y = Math.sin(time * 0.7 + 1) * 0.15;
+        ship.rotation.z = Math.sin(time * 0.5) * 0.02;
         buoyMesh.position.y = Math.sin(time * 1.2) * 0.25;
         buoyMesh.rotation.z = Math.sin(time * 0.9) * 0.08;
-        ship.position.y = Math.sin(time * 0.7 + 1) * 0.15;
+
         gulls.forEach((g, i) => {
           const u = g.userData;
           const a = time * 0.08 * (u.speed / 8) + u.offset;
-          g.position.set(Math.cos(a) * u.r, 6 + Math.sin(time * 0.9 + u.offset) * 1.2 + (i % 3), Math.sin(a) * u.r);
+          const cx = ship.position.x * 0.6;
+          g.position.set(cx + Math.cos(a) * u.r, 6 + Math.sin(time * 0.9 + u.offset) * 1.2 + (i % 3), Math.sin(a) * u.r);
           g.rotation.y = -a;
           g.rotation.z = Math.sin(time * 3 + u.offset) * 0.25;
         });
         cloudBillboards.forEach((c) => {
           c.position.x -= Math.abs(t) * 40 * normDelta * 0.1 + dt * 0.15;
-          if (c.position.x < -40) c.position.x = 40;
+          if (c.position.x < -115) c.position.x = 45;
           c.lookAt(tlCam.position);
         });
 
-        // --- cameras (their lerp constants) ---
+        // --- cameras (their lerp constants), timeline tracks the ship ---
         globeCamPos.x += (scroll.smootherDelta - globeCamPos.x) * 0.06 * normDelta;
         globeCam.position.copy(globeCamPos);
         globeCam.lookAt(globeLook);
@@ -441,11 +450,9 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         tlCamPos.x += (scroll.smootherDelta - tlCamPos.x) * 0.06 * normDelta;
         tlCamPos.y += (scroll.smootherDelta - tlCamPos.x) * 0.1 * normDelta;
         tlLook.x += (scroll.smootherDelta - tlLook.x) * 0.07 * normDelta;
-        // chapter journey: push through the archipelago
-        const journey = THREE.MathUtils.clamp((s.value - 0.08) / 0.8, 0, 1);
-        const jx = journey * 26 - 6;
-        tlCam.position.set(tlCamPos.x + jx, tlCamPos.y, tlCamPos.z);
-        tlCam.lookAt(tlLook.x + jx, 2, 0);
+        const sx = ship.position.x;
+        tlCam.position.set(tlCamPos.x + sx + 14, 26 + tlCamPos.y, 30);
+        tlCam.lookAt(tlLook.x + sx, 2, 4);
 
         // pointer pivot
         pointer.sx += (pointer.x - pointer.sx) * 0.032;

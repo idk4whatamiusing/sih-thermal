@@ -52,12 +52,12 @@ export function PartnerG() {
 
 export function PreloaderCircleOuter() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="270" height="270" fill="none" viewBox="0 0 270 270" className="circle-svg"><circle cx="135" cy="135" r="134.5" stroke="#fff" stroke-dasharray="2 4" strokeOpacity=".4"></circle></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="270" height="270" fill="none" viewBox="0 0 270 270" className="circle-svg"><circle cx="135" cy="135" r="134.5" stroke="#fff" strokeDasharray="2 4" strokeOpacity=".4"></circle></svg>
   );
 }
 
 export function PreloaderCircleInner() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="310" height="310" fill="none" viewBox="0 0 310 310" className="circle-svg"><circle cx="155" cy="155" r="154.5" stroke="#fff" stroke-dasharray="2 4" strokeOpacity=".2"></circle></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="310" height="310" fill="none" viewBox="0 0 310 310" className="circle-svg"><circle cx="155" cy="155" r="154.5" stroke="#fff" strokeDasharray="2 4" strokeOpacity=".2"></circle></svg>
   );
 }

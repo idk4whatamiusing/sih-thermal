@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import type { Chapter } from "@/data/chapters";
 import { PillButton } from "./PillButton";
+import { safeSplit } from "./split";
 
 gsap.registerPlugin(SplitText);
 
@@ -25,10 +26,10 @@ export function ChapterHeading({ chapter, visible, onLearnMore }: ChapterHeading
   // Split once (their D7U0N6dC ChapterHeadings)
   useEffect(() => {
     const splits = [
-      new SplitText(kickerRef.current!, { type: "lines", linesClass: "--line", autoSplit: true }),
-      new SplitText(titleRef.current!, { type: "lines", linesClass: "--line", autoSplit: true }),
-      new SplitText(subRef.current!, { type: "lines", linesClass: "--line", autoSplit: true }),
-    ];
+      safeSplit(kickerRef.current, { type: "lines", linesClass: "--line", autoSplit: true }),
+      safeSplit(titleRef.current, { type: "lines", linesClass: "--line", autoSplit: true }),
+      safeSplit(subRef.current, { type: "lines", linesClass: "--line", autoSplit: true }),
+    ].filter((s): s is SplitText => s !== null);
     splitsRef.current = splits;
     gsap.set(rootRef.current, { autoAlpha: 0 });
     return () => {

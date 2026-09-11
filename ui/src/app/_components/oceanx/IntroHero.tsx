@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { PillButton } from "./PillButton";
+import { safeSplit } from "./split";
 import {
   PartnerA,
   PartnerB,
@@ -37,50 +38,56 @@ export function IntroHero({ onEnter, entered }: IntroHeroProps) {
     const root = rootRef.current;
     if (!root) return;
 
-    const labelSplit = new SplitText(labelRef.current!, {
+    const labelSplit = safeSplit(labelRef.current, {
       type: "lines, words",
       linesClass: "--line",
       wordsClass: "--word",
       mask: "lines",
     });
-    const t1Split = new SplitText(t1Ref.current!, {
+    const t1Split = safeSplit(t1Ref.current, {
       type: "lines, chars",
       linesClass: "--line",
       charsClass: "--char",
       mask: "lines",
     });
-    const t2Split = new SplitText(t2Ref.current!, {
+    const t2Split = safeSplit(t2Ref.current, {
       type: "lines, chars",
       linesClass: "--line",
       charsClass: "--char",
       mask: "lines",
     });
-    const descSplit = new SplitText(descRef.current!, {
+    const descSplit = safeSplit(descRef.current, {
       type: "lines",
       linesClass: "--line",
       mask: "lines",
     });
 
     gsap.set(root, { autoAlpha: 1 });
-    gsap.set([labelSplit.words, t1Split.chars, t2Split.chars], { yPercent: 100 });
-    gsap.set(descSplit.lines, { yPercent: 100 });
+    const showTargets: Element[] = [
+      ...(labelSplit?.words ?? []),
+      ...(t1Split?.chars ?? []),
+      ...(t2Split?.chars ?? []),
+    ];
+    if (showTargets.length) gsap.set(showTargets, { yPercent: 100 });
+    if (descSplit) gsap.set(descSplit.lines, { yPercent: 100 });
     gsap.set(buttonRef.current, { scale: 0, y: 10 });
     gsap.set([descRef.current, linksRef.current], { opacity: 0 });
 
     const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.3, delay: 0.35 } });
     tl.fromTo(buttonRef.current, { scale: 0, y: 10 }, { scale: 1, y: -1 }, 0);
-    tl.to(labelSplit.words, { yPercent: 0, stagger: 0.075, duration: 1.1 }, 0);
-    tl.to([t1Split.chars, t2Split.chars], { yPercent: 0, stagger: 0.03, duration: 1.1 }, 0.1);
+    if (labelSplit) tl.to(labelSplit.words, { yPercent: 0, stagger: 0.075, duration: 1.1 }, 0);
+    if (t1Split || t2Split)
+      tl.to([...(t1Split?.chars ?? []), ...(t2Split?.chars ?? [])], { yPercent: 0, stagger: 0.03, duration: 1.1 }, 0.1);
     tl.to(descRef.current, { opacity: 1, y: 0, duration: 1.4 }, 0.6);
-    tl.to(descSplit.lines, { yPercent: 0, stagger: 0.05 }, 0.8);
+    if (descSplit) tl.to(descSplit.lines, { yPercent: 0, stagger: 0.05 }, 0.8);
     tl.to(linksRef.current, { opacity: 1, duration: 1 }, 1);
 
     return () => {
       tl.kill();
-      labelSplit.revert();
-      t1Split.revert();
-      t2Split.revert();
-      descSplit.revert();
+      labelSplit?.revert();
+      t1Split?.revert();
+      t2Split?.revert();
+      descSplit?.revert();
     };
   }, []);
 

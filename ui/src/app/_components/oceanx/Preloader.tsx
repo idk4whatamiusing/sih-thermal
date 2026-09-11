@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { PreloaderCircleOuter, PreloaderCircleInner } from "./BrandSvgs";
+import { safeSplit } from "./split";
 
 gsap.registerPlugin(SplitText);
 
@@ -29,10 +30,12 @@ export function Preloader({ onComplete }: PreloaderProps) {
     const spin1 = gsap.to(outerRef.current, { rotation: 360, duration: 12, repeat: -1, ease: "none" });
     const spin2 = gsap.to(innerRef.current, { rotation: -360, duration: 9, repeat: -1, ease: "none" });
 
-    const split = new SplitText(textRef.current!, { type: "chars", charsClass: "--char" });
+    const split = safeSplit(textRef.current, { type: "chars", charsClass: "--char" });
     const pulse = gsap.timeline({ repeat: -1, repeatDelay: 0.2, defaults: { stagger: 0.05, duration: 0.3, ease: "power1.inOut" } });
-    pulse.fromTo(split.chars, { opacity: 0.25 }, { opacity: 1 });
-    pulse.to(split.chars, { opacity: 0.25 });
+    if (split) {
+      pulse.fromTo(split.chars, { opacity: 0.25 }, { opacity: 1 });
+      pulse.to(split.chars, { opacity: 0.25 });
+    }
 
     // Real progress: fonts + window load, eased
     let target = 15;
@@ -57,7 +60,6 @@ export function Preloader({ onComplete }: PreloaderProps) {
       onComplete() {
         if (doneRef.current) return;
         doneRef.current = true;
-        // Outro timeline (their Preloader H)
         const out = gsap.timeline({
           defaults: { ease: "expo.out", duration: 0.8 },
           onComplete() {
@@ -65,7 +67,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
             setTimeout(onComplete, 100);
           },
         });
-        out.to(split.chars, { autoAlpha: 0, stagger: 0.0075, duration: 0.6 }, 0);
+        if (split) out.to(split.chars, { autoAlpha: 0, stagger: 0.0075, duration: 0.6 }, 0);
         out.to(outerRef.current, { scale: 0.6, opacity: 0 }, 0);
         out.to(innerRef.current, { scale: 0.7, opacity: 0, duration: 0.7 }, 0.1);
         out.to(textRef.current, { scale: 0.6 }, 0);
@@ -73,12 +75,22 @@ export function Preloader({ onComplete }: PreloaderProps) {
       },
     });
 
+    // Absolute fallback: never trap the user on the preloader.
+    const failsafe = setTimeout(() => {
+      if (doneRef.current) return;
+      doneRef.current = true;
+      tween.kill();
+      setHidden(true);
+      setTimeout(onComplete, 100);
+    }, 8000);
+
     return () => {
+      clearTimeout(failsafe);
       tween.kill();
       spin1.kill();
       spin2.kill();
       pulse.kill();
-      split.revert();
+      split?.revert();
       window.removeEventListener("load", onLoad);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -64,14 +64,11 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
     let cancelled = false;
     let raf = 0;
     let renderer: THREE.WebGLRenderer | null = null;
+    const cleanups: (() => void)[] = [];
     const clock = new THREE.Clock();
 
-    (async () => {
-      if (!ref.current) return;
-      const el = ref.current;
-      const W = () => el.clientWidth || window.innerWidth;
-      const H = () => el.clientHeight || window.innerHeight;
-
+    const initScene = async (el: HTMLDivElement, W: () => number, H: () => number) => {
+      el.dataset.webgl = "loading";
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(W(), H());
@@ -136,6 +133,10 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
       };
       window.addEventListener("pointermove", onPointer);
+      cleanups.push(() => {
+        window.removeEventListener("resize", onResize);
+        window.removeEventListener("pointermove", onPointer);
+      });
 
       // --- load models + textures (their manifest) ---
       const [
@@ -176,6 +177,7 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         fetch("/webgl/earth_markers.json").then((r) => r.json()),
       ]);
       if (cancelled) return;
+      el.dataset.webgl = "models:17";
 
       envMap.mapping = THREE.EquirectangularReflectionMapping;
       envMap.colorSpace = THREE.SRGBColorSpace;
@@ -472,17 +474,30 @@ export function OceanCanvas({ stateRef, entered }: OceanCanvasProps) {
         raf = requestAnimationFrame(tick);
       };
       tick();
+    };
 
-      return () => {
-        cancelAnimationFrame(raf);
-        window.removeEventListener("resize", onResize);
-        window.removeEventListener("pointermove", onPointer);
-      };
+    (async () => {
+      if (!ref.current) return;
+      const el = ref.current;
+      try {
+        await initScene(
+          el,
+          () => el.clientWidth || window.innerWidth,
+          () => el.clientHeight || window.innerHeight,
+        );
+        if (!cancelled) el.dataset.webgl = "ready";
+      } catch (err) {
+        console.error("OceanCanvas failed, gradient fallback:", err);
+        el.dataset.webgl = `error:${err instanceof Error ? err.message : String(err)}`;
+        el.style.background =
+          "radial-gradient(ellipse 80% 60% at 50% 110%, #1a486b 0%, #001224 55%, #000d15 100%)";
+      }
     })();
 
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
+      cleanups.forEach((fn) => fn());
       renderer?.dispose();
       renderer?.domElement.remove();
     };

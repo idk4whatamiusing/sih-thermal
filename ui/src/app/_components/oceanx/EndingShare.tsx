@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { PillButton } from "./PillButton";
+import { safeSplit } from "./split";
 import {
   PartnerA,
   PartnerB,
@@ -26,35 +27,36 @@ export function EndingShare() {
 
   useEffect(() => {
     const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.3 } });
-    const w1 = new SplitText(t1Ref.current!, {
+    const w1 = safeSplit(t1Ref.current, {
       type: "lines, chars",
       linesClass: "--line",
       charsClass: "--char",
       mask: "lines",
     });
-    const w2 = new SplitText(t2Ref.current!, {
+    const w2 = safeSplit(t2Ref.current, {
       type: "lines, chars",
       linesClass: "--line",
       charsClass: "--char",
       mask: "lines",
     });
-    const d = new SplitText(descRef.current!, {
+    const d = safeSplit(descRef.current, {
       type: "lines",
       linesClass: "--line",
       mask: "lines",
       autoSplit: true,
     });
-    gsap.set([w1.chars, w2.chars], { yPercent: 100 });
-    gsap.set(d.lines, { yPercent: 100 });
+    const chars = [...(w1?.chars ?? []), ...(w2?.chars ?? [])];
+    if (chars.length) gsap.set(chars, { yPercent: 100 });
+    if (d) gsap.set(d.lines, { yPercent: 100 });
     gsap.set(descRef.current, { opacity: 0, y: 25 });
-    tl.to([w1.chars, w2.chars], { yPercent: 0, stagger: 0.03, duration: 1.1 }, 0.1);
+    if (chars.length) tl.to(chars, { yPercent: 0, stagger: 0.03, duration: 1.1 }, 0.1);
     tl.to(descRef.current, { opacity: 1, y: 0, duration: 1.4 }, 0.8);
-    tl.to(d.lines, { yPercent: 0, stagger: 0.05 }, 0.6);
+    if (d) tl.to(d.lines, { yPercent: 0, stagger: 0.05 }, 0.6);
     return () => {
       tl.kill();
-      w1.revert();
-      w2.revert();
-      d.revert();
+      w1?.revert();
+      w2?.revert();
+      d?.revert();
     };
   }, []);
 

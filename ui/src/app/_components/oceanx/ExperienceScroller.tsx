@@ -9,6 +9,7 @@ import { OceanCanvas } from "./OceanCanvas";
 import { ChapterHeading } from "./ChapterHeading";
 import { ChapterDrawer } from "./ChapterDrawer";
 import { EndingShare } from "./EndingShare";
+import { ErrorBadge } from "./ErrorBadge";
 import { Logo } from "./BrandSvgs";
 
 // Damp helper mirroring their We.Damp (exponential smoothing)
@@ -193,6 +194,9 @@ export function ExperienceScroller() {
         open={drawerChapter !== null}
         onClose={handleCloseDrawer}
       />
+
+      {/* Surfaces any runtime failure as a visible badge */}
+      <ErrorBadge />
     </div>
   );
 }
